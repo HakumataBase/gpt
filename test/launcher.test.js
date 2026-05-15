@@ -7,6 +7,7 @@ const playBatRaw = readFileSync("play.bat");
 const playCmdRaw = readFileSync("play.cmd");
 const openBrowserBat = readFileSync("open-browser.bat", "utf8");
 const windowsLauncher = readFileSync("tools/windows-launcher.ps1", "utf8");
+const windowsLauncherRaw = readFileSync("tools/windows-launcher.ps1");
 const readme = readFileSync("README.md", "utf8");
 
 test("Windows launcher bat delegates to the bundled PowerShell server", () => {
@@ -38,8 +39,15 @@ test("README documents the Windows launcher does not require Python", () => {
 });
 
 
-test("Windows batch launchers use CRLF line endings for Explorer double-click compatibility", () => {
+test("Windows launchers use Windows-friendly file encodings and line endings", () => {
   assert.ok(playBatRaw.includes(Buffer.from("\r\n")));
   assert.equal(playBatRaw.includes(Buffer.from("\n")), true);
   assert.ok(playCmdRaw.includes(Buffer.from("\r\n")));
+  assert.deepEqual([...windowsLauncherRaw.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+  assert.ok(windowsLauncherRaw.includes(Buffer.from("\r\n")));
+});
+
+test("PowerShell launcher avoids the previously broken interpolated error string", () => {
+  assert.doesNotMatch(windowsLauncher, /\$message = "Server Error:/);
+  assert.match(windowsLauncher, /\$errorMessage = 'Server Error: ' \+ \$_\.Exception\.Message/);
 });
