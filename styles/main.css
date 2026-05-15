@@ -24,6 +24,8 @@ body {
   overflow: hidden;
   margin: 0;
   background:
+    linear-gradient(90deg, rgba(12, 16, 32, 0.86), rgba(12, 16, 32, 0.74)),
+    url("../assets/ui/key-art.svg") center top / cover no-repeat,
     radial-gradient(circle at top left, rgba(255, 95, 109, 0.25), transparent 28rem),
     radial-gradient(circle at bottom right, rgba(109, 183, 255, 0.22), transparent 32rem),
     var(--bg);
@@ -62,7 +64,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.25);
 }
 
-.hero-card { flex: 0 0 auto; margin-bottom: 0.35rem; padding: 0.45rem 0.65rem; }
+.hero-card { flex: 0 0 auto; margin-bottom: 0.35rem; overflow: hidden; padding: 0.45rem 0.65rem; position: relative; }
+.hero-card::after { background: url("../assets/ui/key-art.svg") center / cover; border-radius: 1rem; content: ""; inset: 0.25rem 0.35rem auto auto; opacity: 0.32; position: absolute; height: 4.5rem; width: 16rem; z-index: 0; }
+.hero-card > * { position: relative; z-index: 1; }
 .eyebrow { color: var(--accent); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; margin-bottom: 0.16rem; text-transform: uppercase; }
 h1, h2, h3, p { margin-top: 0; }
 h1 { font-size: clamp(1.1rem, 1.8vw, 1.55rem); line-height: 1; margin-bottom: 0.18rem; }
@@ -91,6 +95,9 @@ dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden
 .party-list, .objective-list { display: grid; gap: 0.18rem; list-style: none; padding-left: 0; }
 .party-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .party-list li, .objective-list li { background: rgba(255,255,255,0.06); border-radius: 0.45rem; padding: 0.18rem 0.26rem; }
+.party-list li { align-items: center; display: grid; gap: 0.28rem; grid-template-columns: 1.65rem 1fr; min-width: 0; }
+.character-icon { border: 1px solid var(--line); border-radius: 0.45rem; height: 1.65rem; object-fit: cover; width: 1.65rem; }
+.character-copy { min-width: 0; }
 .objective-list li.complete { border: 1px solid rgba(92, 225, 169, 0.45); }
 .objective-title, .objective-progress, .objective-description { display: block; }
 .objective-title { font-weight: 800; }
@@ -161,6 +168,8 @@ dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden
 .log-list li { color: var(--muted); font-size: 0.74rem; line-height: 1.24; }
 .log-list li:first-child { background: rgba(255, 204, 102, 0.1); border-radius: 0.5rem; color: var(--text); padding: 0.25rem 0.35rem; }
 .log-list li.muted-log { color: rgba(185, 189, 208, 0.66); font-size: 0.72rem; }
+.debug-panel { bottom: 0.7rem; display: grid; gap: 0.35rem; position: fixed; right: 0.7rem; width: 12rem; z-index: 20; }
+.hidden { display: none !important; }
 
 .modal {
   align-items: center;
@@ -258,6 +267,7 @@ dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden
   body { overflow: visible; }
   .shell { height: auto; min-height: 100vh; padding: 0.75rem; }
   .game-layout { grid-template-columns: 1fr; }
+  .debug-panel { position: static; width: auto; }
   .panel { max-height: none; }
   .map-grid { --tile-size: clamp(1.75rem, 8vw, 2.55rem); }
 }

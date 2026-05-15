@@ -50,6 +50,17 @@ import {
 
 const SAVE_STORAGE_KEY = "after-school-flag-panic.save.v1";
 
+const ASSET_PATHS = {
+  characters: {
+    hero: "assets/characters/hero.svg",
+    minato: "assets/characters/minato.svg",
+    akari: "assets/characters/akari.svg",
+    shun: "assets/characters/shun.svg",
+  },
+};
+
+const DEBUG_ENABLED = new URLSearchParams(window.location.search).has("debug");
+
 const state = createInitialState();
 
 const ui = {
@@ -85,6 +96,10 @@ const ui = {
   saveButton: document.querySelector("#save-button"),
   loadButton: document.querySelector("#load-button"),
   signalButton: document.querySelector("#send-signal-button"),
+  debugPanel: document.querySelector("#debug-panel"),
+  debugCompleteChapter: document.querySelector("#debug-complete-chapter"),
+  debugFullResources: document.querySelector("#debug-full-resources"),
+  debugWin: document.querySelector("#debug-win"),
   modal: document.querySelector("#modal"),
   modalTitle: document.querySelector("#modal-title"),
   modalBody: document.querySelector("#modal-body"),
@@ -740,8 +755,8 @@ function render() {
   ui.chapter.textContent = chapterProgress.alreadyCompleted ? "一章完了" : "一章進行中";
   ui.party.innerHTML = state.party.map((member) => `
     <li>
-      <span class="character-name"><span>${member.name}</span><span>${member.role}</span></span>
-      <span class="character-meta">HP ${member.hp}/${member.maxHp} / 旗汚染 ${member.infection}% / 攻撃 ${member.attack}</span>
+      <img class="character-icon" src="${ASSET_PATHS.characters[member.id]}" alt="" loading="lazy" />
+      <span class="character-copy"><span class="character-name"><span>${member.name}</span><span>${member.role}</span></span><span class="character-meta">HP ${member.hp}/${member.maxHp} / 汚染 ${member.infection}% / 攻 ${member.attack}</span></span>
     </li>
   `).join("");
   renderObjectives();
@@ -886,6 +901,43 @@ function renderLogs() {
   }
 }
 
+function debugCompleteChapterOne() {
+  if (!DEBUG_ENABLED) return;
+  closeModal();
+  state.currentAreaId = null;
+  state.terrain = [];
+  state.entities = [];
+  state.player = { x: 0, y: 0 };
+  recordAreaVisit(state, "school");
+  completeEvent(state, "locker");
+  rescueAllyInState(state, "akari");
+  state.parts = Math.max(state.parts, 1);
+  if (!state.completedChapters.has(1)) completeChapter(state);
+  addLog("[DEBUG] 第一章クリア状態にしました。");
+  render();
+}
+
+function debugFullResources() {
+  if (!DEBUG_ENABLED) return;
+  state.food = 12;
+  state.medicine = 8;
+  state.parts = Math.max(state.parts, REQUIRED_PARTS);
+  state.traces = Math.max(state.traces, REQUIRED_TRACES_FOR_TRUTH);
+  state.morale = 100;
+  state.party.forEach((member) => {
+    member.hp = member.maxHp;
+    member.infection = 0;
+  });
+  addLog("[DEBUG] 資源とHPを最大化しました。");
+  render();
+}
+
+function debugWin() {
+  if (!DEBUG_ENABLED) return;
+  debugFullResources();
+  sendSignal();
+}
+
 function randomPick(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
@@ -912,6 +964,12 @@ ui.restartButton.addEventListener("click", restart);
 ui.saveButton.addEventListener("click", saveGame);
 ui.loadButton.addEventListener("click", loadGame);
 ui.signalButton.addEventListener("click", sendSignal);
+if (DEBUG_ENABLED) {
+  ui.debugPanel.classList.remove("hidden");
+  ui.debugCompleteChapter.addEventListener("click", debugCompleteChapterOne);
+  ui.debugFullResources.addEventListener("click", debugFullResources);
+  ui.debugWin.addEventListener("click", debugWin);
+}
 document.querySelector("#move-up").addEventListener("click", () => movePlayer(0, -1));
 document.querySelector("#move-down").addEventListener("click", () => movePlayer(0, 1));
 document.querySelector("#move-left").addEventListener("click", () => movePlayer(-1, 0));

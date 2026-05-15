@@ -99,3 +99,22 @@ test("exploration controls use compact two-row cards that fit the hub", () => {
   assert.match(css, /\.base-actions \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(css, /\.area-button \{[^}]*min-height: 2\.35rem;/);
 });
+
+test("replaceable visual assets are centralized and referenced by the UI", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.ok(existsSync("assets/README.md"));
+  assert.ok(existsSync("assets/ui/key-art.svg"));
+  for (const id of ["hero", "minato", "akari", "shun"]) {
+    assert.ok(existsSync(`assets/characters/${id}.svg`));
+    assert.match(mainSource, new RegExp(`assets/characters/${id}\\.svg`));
+  }
+  assert.match(css, /url\("\.\.\/assets\/ui\/key-art\.svg"\)/);
+});
+
+test("debug mode exposes chapter-complete and ending shortcuts only behind a query flag", () => {
+  assert.match(html, /id="debug-panel"/);
+  assert.match(mainSource, /new URLSearchParams\(window\.location\.search\)\.has\("debug"\)/);
+  assert.match(mainSource, /function debugCompleteChapterOne\(\)/);
+  assert.match(mainSource, /function debugWin\(\)/);
+});
