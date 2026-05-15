@@ -71,6 +71,19 @@ test("battle modal includes animated combat presentation styles", () => {
   assert.match(css, /@keyframes enemyCounter/);
 });
 
-test("latest-first log rendering pins the scroll position to the newest entry", () => {
-  assert.match(mainSource, /requestAnimationFrame\(\(\) => \{\n    ui\.log\.scrollTop = 0;/);
+test("latest-first log rendering is capped instead of internally scrolled", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(mainSource, /const VISIBLE_LOG_COUNT = 9;/);
+  assert.match(mainSource, /slice\(0, VISIBLE_LOG_COUNT\)/);
+  assert.doesNotMatch(mainSource, /ui\.log\.scrollTop/);
+  assert.match(css, /\.log-list \{[^}]*overflow: hidden;/);
+});
+
+test("desktop layout avoids internal scroll containers", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.doesNotMatch(css, /overflow: auto/);
+  assert.match(css, /\.panel \{[^}]*overflow: hidden;/);
+  assert.match(css, /body \{[^}]*overflow: hidden;/);
 });

@@ -865,16 +865,23 @@ function renderAreaNotes() {
   });
 }
 
+const VISIBLE_LOG_COUNT = 9;
+
 function renderLogs() {
   ui.log.innerHTML = "";
-  [...state.logs].reverse().forEach((log) => {
+  const visibleLogs = [...state.logs].reverse().slice(0, VISIBLE_LOG_COUNT);
+  visibleLogs.forEach((log) => {
     const item = document.createElement("li");
     item.textContent = log;
     ui.log.append(item);
   });
-  requestAnimationFrame(() => {
-    ui.log.scrollTop = 0;
-  });
+  const hiddenLogCount = Math.max(0, state.logs.length - visibleLogs.length);
+  if (hiddenLogCount > 0) {
+    const item = document.createElement("li");
+    item.className = "muted-log";
+    item.textContent = `古いログ ${hiddenLogCount} 件を省略中`;
+    ui.log.append(item);
+  }
 }
 
 function randomPick(items) {
