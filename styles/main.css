@@ -123,7 +123,7 @@ dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden
 
 .map-panel { min-width: 0; }
 .map-panel.base-mode { align-content: start; display: grid; }
-.map-panel.base-mode .map-grid, .map-panel.base-mode .map-controls, .map-panel.base-mode .help-text, .map-panel.base-mode .area-notes { display: none !important; }
+.map-panel.base-mode .map-controls, .map-panel.base-mode .help-text, .map-panel.base-mode .area-notes { display: none !important; }
 .map-panel.base-mode #return-button { display: none; }
 #area-description { color: var(--muted); font-size: 0.82rem; line-height: 1.32; margin-bottom: 0; }
 .map-grid {
@@ -281,3 +281,14 @@ dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden
 }
 
 .base-placeholder { align-items: center; color: var(--muted); display: flex; font-size: 1.05rem; font-weight: 800; height: 100%; justify-content: center; min-height: 160px; width: 100%; }
+.base-map { background: radial-gradient(circle at 50% 46%, rgba(255,204,102,.18), transparent 32%), rgba(255,255,255,.045); border: 1px solid var(--line); border-radius: 1rem; display: grid; gap: 0.7rem; grid-template-areas: ". school ." "park base market" ". hospital ."; grid-template-columns: 1fr 1fr 1fr; margin: 0.55rem auto 0; max-width: 46rem; min-height: min(54vh, 27rem); padding: 0.9rem; position: relative; width: 100%; }
+.base-map::after { align-items: center; background: linear-gradient(135deg, var(--safe), #2fbdff); border: 2px solid rgba(255,255,255,.45); border-radius: 999px; color: #062015; content: "拠点"; display: flex; font-size: 0.9rem; font-weight: 900; grid-area: base; height: 4.4rem; justify-self: center; place-self: center; width: 4.4rem; z-index: 0; }
+.base-map-node { align-self: center; background-position: center; background-size: cover; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 .8rem 2rem rgba(0,0,0,.24); display: grid; min-height: 6.3rem; overflow: hidden; padding: 0.58rem; position: relative; text-align: left; }
+.base-map-node::before { background: rgba(255,204,102,.7); content: ""; inset: auto auto 0 0; height: .22rem; position: absolute; width: 100%; }
+.base-map-node .node-name { font-size: 1rem; font-weight: 900; text-shadow: 0 1px 5px rgba(0,0,0,.65); }
+.base-map-node .node-meta { align-self: end; color: var(--accent); font-size: .74rem; font-weight: 900; }
+.base-map-node .node-summary { color: var(--muted); font-size: .68rem; font-weight: 800; }
+.node-school { grid-area: school; }
+.node-market { grid-area: market; }
+.node-hospital { grid-area: hospital; }
+.node-park { grid-area: park; }

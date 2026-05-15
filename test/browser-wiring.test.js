@@ -139,6 +139,18 @@ test("base map panel hides duplicate controls while at the hub", () => {
   assert.match(mainSource, /mapPanel: document\.querySelector\("\.map-panel"\)/);
   assert.match(mainSource, /ui\.mapPanel\.classList\.add\("base-mode"\)/);
   assert.match(mainSource, /ui\.mapPanel\.classList\.remove\("base-mode"\)/);
-  assert.match(css, /\.map-panel\.base-mode \.map-grid/);
+  assert.match(css, /\.map-panel\.base-mode \.map-controls/);
   assert.match(css, /\.map-panel\.base-mode #return-button \{ display: none;/);
+});
+
+test("hub renders exploration destinations as a clickable surrounding map", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(mainSource, /function renderBaseMap\(\)/);
+  assert.match(mainSource, /className = `base-map-node/);
+  assert.match(mainSource, /url\(assets\/areas\/\$\{areaId\}\.svg\)/);
+  assert.match(mainSource, /button\.addEventListener\("click", \(\) => enterArea\(areaId\)\)/);
+  assert.match(css, /\.base-map \{/);
+  assert.match(css, /grid-template-areas: "\. school \." "park base market" "\. hospital \."/);
+  assert.match(css, /\.base-map-node \{/);
 });

@@ -831,10 +831,9 @@ function renderMap() {
   ui.map.innerHTML = "";
   if (!state.currentAreaId) {
     ui.mapPanel.classList.add("base-mode");
-    ui.areaName.textContent = "学校拠点";
-    ui.areaDescription.textContent = "拠点では左の探索先と行動ボタンだけ見れば進行できます。仲間や目標の詳細は必要な時だけ開いてください。";
-    ui.map.innerHTML = `<div class="base-placeholder">探索先を選択</div>`;
-    ui.map.style.display = "flex";
+    ui.areaName.textContent = "学校拠点周辺図";
+    ui.areaDescription.textContent = "拠点から周辺マップへ出て、目的地ノードを選んで探索に向かいます。危険度と残り要素を見て行き先を決めてください。";
+    renderBaseMap();
     return;
   }
 
@@ -865,6 +864,31 @@ function renderMap() {
       ui.map.append(tile);
     }
   }
+}
+
+function renderBaseMap() {
+  ui.map.style.display = "block";
+  ui.map.innerHTML = `<div class="base-map" aria-label="拠点周辺マップ"></div>`;
+  const baseMap = ui.map.querySelector(".base-map");
+  const positions = {
+    school: "node-school",
+    market: "node-market",
+    hospital: "node-hospital",
+    park: "node-park",
+  };
+
+  Object.entries(AREAS).forEach(([areaId, area]) => {
+    const summary = getAreaExplorationSummary(state, areaId);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `base-map-node ${positions[areaId] ?? ""}`;
+    button.disabled = state.gameOver;
+    button.style.backgroundImage = `linear-gradient(180deg, rgba(12,16,32,.12), rgba(12,16,32,.78)), url(assets/areas/${areaId}.svg)`;
+    button.innerHTML = `<span class="node-name">${area.name}</span><span class="node-meta">危険度 ${summary.currentDanger} / ${area.timeCost}区切り</span><span class="node-summary">物${summary.itemCount} イ${summary.eventCount} 仲${summary.allyCount} 敵+${summary.reinforcementCount}</span>`;
+    button.title = `${area.name}: 危険度 ${summary.currentDanger} / 物資${summary.itemCount} / イベント${summary.eventCount} / 仲間${summary.allyCount}`;
+    button.addEventListener("click", () => enterArea(areaId));
+    baseMap.append(button);
+  });
 }
 
 function entityLabel(entity) {
