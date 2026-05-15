@@ -14,9 +14,10 @@ test("Windows launcher bat delegates to the bundled PowerShell server", () => {
   assert.ok(existsSync("tools/windows-launcher.ps1"));
 });
 
-test("PowerShell launcher serves local files and opens the browser without Python", () => {
-  assert.match(windowsLauncher, /New-Object System\.Net\.HttpListener/);
-  assert.match(windowsLauncher, /Start-Process \$Prefix/);
+test("PowerShell launcher serves local files with a non-admin TCP server", () => {
+  assert.match(windowsLauncher, /\[System\.Net\.Sockets\.TcpListener\]::new\(\[System\.Net\.IPAddress\]::Loopback, \$Port\)/);
+  assert.doesNotMatch(windowsLauncher, /HttpListener/);
+  assert.match(windowsLauncher, /Start-Process \$Url/);
   assert.match(windowsLauncher, /index\.html/);
   assert.match(windowsLauncher, /text\/javascript; charset=utf-8/);
   assert.match(windowsLauncher, /StartsWith\(\$RootWithSeparator, \[System\.StringComparison\]::OrdinalIgnoreCase\)/);

@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $RootWithSeparator = $Root.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
-$Prefix = "http://127.0.0.1:$Port/"
+$Url = "http://127.0.0.1:$Port/"
 
 function Test-PortOpen {
   param([int]$TargetPort)
@@ -37,27 +37,53 @@ function Get-ContentType {
   }
 }
 
-function Send-TextResponse {
+function Write-HttpResponse {
   param(
-    [System.Net.HttpListenerResponse]$Response,
+    [System.IO.Stream]$Stream,
     [int]$StatusCode,
+    [string]$StatusText,
+    [string]$ContentType,
+    [byte[]]$Body
+  )
+
+  $headers = "HTTP/1.1 $StatusCode $StatusText`r`n" +
+    "Content-Type: $ContentType`r`n" +
+    "Content-Length: $($Body.Length)`r`n" +
+    "Cache-Control: no-store`r`n" +
+    "Connection: close`r`n`r`n"
+  $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($headers)
+  $Stream.Write($headerBytes, 0, $headerBytes.Length)
+  if ($Body.Length -gt 0) {
+    $Stream.Write($Body, 0, $Body.Length)
+  }
+}
+
+function Write-TextResponse {
+  param(
+    [System.IO.Stream]$Stream,
+    [int]$StatusCode,
+    [string]$StatusText,
     [string]$Message
   )
-  $bytes = [System.Text.Encoding]::UTF8.GetBytes($Message)
-  $Response.StatusCode = $StatusCode
-  $Response.ContentType = "text/plain; charset=utf-8"
-  $Response.ContentLength64 = $bytes.Length
-  $Response.OutputStream.Write($bytes, 0, $bytes.Length)
+  $body = [System.Text.Encoding]::UTF8.GetBytes($Message)
+  Write-HttpResponse -Stream $Stream -StatusCode $StatusCode -StatusText $StatusText -ContentType "text/plain; charset=utf-8" -Body $body
+}
+
+function Resolve-RequestPath {
+  param([string]$RawPath)
+  $pathOnly = $RawPath.Split("?")[0].TrimStart("/")
+  if ([string]::IsNullOrWhiteSpace($pathOnly)) { $pathOnly = "index.html" }
+  $decoded = [System.Uri]::UnescapeDataString($pathOnly) -replace "/", [System.IO.Path]::DirectorySeparatorChar
+  return [System.IO.Path]::GetFullPath((Join-Path $Root $decoded))
 }
 
 if (Test-PortOpen -TargetPort $Port) {
-  Write-Host "既に $Prefix でサーバーが起動しています。ブラウザを開きます。"
-  Start-Process $Prefix
+  Write-Host "既に $Url でサーバーが起動しています。ブラウザを開きます。"
+  Start-Process $Url
   exit 0
 }
 
-$listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add($Prefix)
+$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
 
 try {
   $listener.Start()
@@ -67,39 +93,56 @@ try {
   exit 1
 }
 
-Write-Host "ローカルサーバー: $Prefix"
+Write-Host "ローカルサーバー: $Url"
 Write-Host "公開フォルダ: $Root"
 Write-Host "終了するときは Ctrl+C を押すか、このウィンドウを閉じてください。"
-Start-Process $Prefix
+Start-Process $Url
 
 try {
-  while ($listener.IsListening) {
-    $context = $listener.GetContext()
-    $requestPath = [System.Uri]::UnescapeDataString($context.Request.Url.AbsolutePath.TrimStart("/"))
-    if ([string]::IsNullOrWhiteSpace($requestPath)) { $requestPath = "index.html" }
-    $requestPath = $requestPath -replace "/", [System.IO.Path]::DirectorySeparatorChar
-    $fullPath = [System.IO.Path]::GetFullPath((Join-Path $Root $requestPath))
+  while ($true) {
+    $client = $listener.AcceptTcpClient()
+    try {
+      $stream = $client.GetStream()
+      $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::ASCII, $false, 1024, $true)
+      $requestLine = $reader.ReadLine()
+      if ([string]::IsNullOrWhiteSpace($requestLine)) {
+        Write-TextResponse -Stream $stream -StatusCode 400 -StatusText "Bad Request" -Message "Bad Request"
+        continue
+      }
 
-    if (-not $fullPath.StartsWith($RootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
-      Send-TextResponse -Response $context.Response -StatusCode 403 -Message "Forbidden"
-      $context.Response.Close()
-      continue
+      while (-not [string]::IsNullOrEmpty($reader.ReadLine())) {}
+
+      $parts = $requestLine.Split(" ")
+      if ($parts.Length -lt 2 -or ($parts[0] -ne "GET" -and $parts[0] -ne "HEAD")) {
+        Write-TextResponse -Stream $stream -StatusCode 405 -StatusText "Method Not Allowed" -Message "Method Not Allowed"
+        continue
+      }
+
+      $fullPath = Resolve-RequestPath -RawPath $parts[1]
+      if (-not $fullPath.StartsWith($RootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Write-TextResponse -Stream $stream -StatusCode 403 -StatusText "Forbidden" -Message "Forbidden"
+        continue
+      }
+
+      if (-not [System.IO.File]::Exists($fullPath)) {
+        Write-TextResponse -Stream $stream -StatusCode 404 -StatusText "Not Found" -Message "Not Found"
+        continue
+      }
+
+      $bytes = [System.IO.File]::ReadAllBytes($fullPath)
+      if ($parts[0] -eq "HEAD") { $bytes = [byte[]]::new(0) }
+      Write-HttpResponse -Stream $stream -StatusCode 200 -StatusText "OK" -ContentType (Get-ContentType -Path $fullPath) -Body $bytes
+    } catch {
+      try {
+        $message = "Server Error: $($_.Exception.Message)"
+        Write-TextResponse -Stream $stream -StatusCode 500 -StatusText "Internal Server Error" -Message $message
+      } catch {}
+    } finally {
+      if ($reader) { $reader.Dispose() }
+      if ($stream) { $stream.Dispose() }
+      $client.Close()
     }
-
-    if (-not [System.IO.File]::Exists($fullPath)) {
-      Send-TextResponse -Response $context.Response -StatusCode 404 -Message "Not Found"
-      $context.Response.Close()
-      continue
-    }
-
-    $bytes = [System.IO.File]::ReadAllBytes($fullPath)
-    $context.Response.StatusCode = 200
-    $context.Response.ContentType = Get-ContentType -Path $fullPath
-    $context.Response.ContentLength64 = $bytes.Length
-    $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
-    $context.Response.Close()
   }
 } finally {
-  if ($listener.IsListening) { $listener.Stop() }
-  $listener.Close()
+  $listener.Stop()
 }
