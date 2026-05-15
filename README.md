@@ -26,6 +26,7 @@
 
 - Windows: `play.bat`
   - Pythonが無くても、Windows標準のPowerShellでローカルサーバーを起動してブラウザを開きます。直接押すのは `play.bat` だけでOKです。
+  - `play.bat` が関連付けなどで開けない場合は、同じ内容の `play.cmd` をダブルクリックしてください。
 - macOS / Linux: `play.command`
 
 起動すると自動でブラウザを開きます。ブラウザが開かない場合は、手動で以下を開いてください。
