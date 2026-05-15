@@ -800,10 +800,12 @@ function renderAreaButtons() {
     button.className = "area-button";
     button.disabled = !!state.currentAreaId || state.gameOver;
     const currentDanger = getAreaDanger(state, id);
-    const dangerNote = currentDanger > area.danger ? `基礎${area.danger} → 現在${currentDanger}` : `現在${currentDanger}`;
+    const dangerNote = currentDanger > area.danger ? `${area.danger}→${currentDanger}` : `${currentDanger}`;
     const summary = getAreaExplorationSummary(state, id);
     const scoutingNote = `物資${summary.itemCount} / イベント${summary.eventCount} / 仲間${summary.allyCount} / 追加敵${summary.reinforcementCount}`;
-    button.innerHTML = `${area.name}<small>危険度 ${dangerNote} / ${area.timeCost}区切り消費</small><small>${scoutingNote}</small>`;
+    button.title = `${area.name}: 危険度 ${dangerNote} / ${area.timeCost}区切り消費 / ${scoutingNote}`;
+    button.setAttribute("aria-label", button.title);
+    button.innerHTML = `<span class="area-title">${area.name}</span><span class="area-meta">危${dangerNote}・${area.timeCost}区</span><span class="area-summary">物${summary.itemCount} イ${summary.eventCount} 仲${summary.allyCount} 敵+${summary.reinforcementCount}</span>`;
     button.addEventListener("click", () => enterArea(id));
     ui.areas.append(button);
   });

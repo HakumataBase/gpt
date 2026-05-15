@@ -87,3 +87,15 @@ test("desktop layout avoids internal scroll containers", () => {
   assert.match(css, /\.panel \{[^}]*overflow: hidden;/);
   assert.match(css, /body \{[^}]*overflow: hidden;/);
 });
+
+test("exploration controls use compact two-row cards that fit the hub", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(mainSource, /class=\"area-title\"/);
+  assert.match(mainSource, /class=\"area-meta\"/);
+  assert.match(mainSource, /class=\"area-summary\"/);
+  assert.doesNotMatch(mainSource, /<small>危険度/);
+  assert.match(css, /\.stacked-actions \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.base-actions \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.area-button \{[^}]*min-height: 2\.35rem;/);
+});
