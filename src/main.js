@@ -378,23 +378,50 @@ function createBattlePreviewBody({ enemy, tactic, partyAttack, totalEnemyDamage,
     `${enemy.name}が立ちはだかった。`,
     `作戦:${tactic.name} / 推定攻撃:${partyAttack} / 被害:${totalEnemyDamage} / 汚染:+${infectionGain}`,
     `逃走成功率 約${Math.round(escapeChance * 100)}%。`,
-  ]);
+  ], {
+    mode: "preview",
+    partyDamage: partyAttack,
+    enemyDamage: totalEnemyDamage,
+    infectionGain,
+  });
 }
 
 function createBattleResultBody(enemy, lines) {
-  return createBattleBody(enemy, lines);
+  const wonCleanly = lines.some((line) => line.includes("押し切った"));
+  const escaped = lines.some((line) => line.includes("逃げ") || line.includes("振り切った"));
+  return createBattleBody(enemy, lines, {
+    mode: escaped ? "escape" : "result",
+    result: wonCleanly ? "clean" : "counter",
+  });
 }
 
-function createBattleBody(enemy, lines) {
+function createBattleBody(enemy, lines, options = {}) {
   const body = document.createElement("div");
-  body.className = "battle-body";
+  body.className = `battle-body battle-${options.mode || "result"}`;
   const stage = document.createElement("div");
-  stage.className = "battle-stage";
+  stage.className = `battle-stage ${options.result === "counter" ? "enemy-counter" : "party-attack"}`;
   stage.innerHTML = `
-    <div class="battle-side allies"><span class="battle-sprite">主</span><span>仲間</span></div>
-    <div class="battle-slash">⚔</div>
-    <div class="battle-side enemy"><span class="battle-sprite">${enemy.icon}</span><span>${enemy.name}</span></div>
+    <div class="battle-side allies">
+      <span class="battle-sprite hero-sprite">主</span>
+      <span class="battle-name">生存班</span>
+      <span class="battle-hp"><span style="width: ${options.result === "counter" ? 64 : 88}%"></span></span>
+    </div>
+    <div class="battle-action" aria-hidden="true">
+      <span class="hit-effect hit-one">斬</span>
+      <span class="hit-effect hit-two">!</span>
+      <span class="battle-slash">⚔</span>
+    </div>
+    <div class="battle-side enemy">
+      <span class="battle-sprite enemy-sprite">${enemy.icon}</span>
+      <span class="battle-name">${enemy.name}</span>
+      <span class="battle-hp danger"><span style="width: ${options.mode === "preview" ? 100 : 0}%"></span></span>
+    </div>
   `;
+  const summary = document.createElement("p");
+  summary.className = "battle-summary";
+  summary.textContent = options.mode === "preview"
+    ? `接触戦闘: 味方が踏み込み、敵の反撃前に削り切れるかが勝負。想定与ダメージ ${options.partyDamage} / 反撃 ${options.enemyDamage}。`
+    : "味方と敵がぶつかり合い、攻撃・反撃・決着を順に処理しました。";
   const list = document.createElement("ol");
   list.className = "battle-lines";
   lines.forEach((line) => {
@@ -402,7 +429,7 @@ function createBattleBody(enemy, lines) {
     item.textContent = line;
     list.append(item);
   });
-  body.append(stage, list);
+  body.append(stage, summary, list);
   return body;
 }
 
@@ -685,7 +712,10 @@ function showChoice(title, body, choices) {
     button.type = "button";
     button.textContent = choice.label;
     if (choice.primary) button.classList.add("primary");
-    button.addEventListener("click", choice.action);
+    button.addEventListener("click", () => {
+      if (choice.closeOnAction !== false) closeModal();
+      choice.action();
+    });
     ui.modalActions.append(button);
   });
   ui.modal.classList.remove("hidden");
@@ -842,7 +872,9 @@ function renderLogs() {
     item.textContent = log;
     ui.log.append(item);
   });
-  ui.log.scrollTop = 0;
+  requestAnimationFrame(() => {
+    ui.log.scrollTop = 0;
+  });
 }
 
 function randomPick(items) {

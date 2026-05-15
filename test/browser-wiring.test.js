@@ -49,3 +49,28 @@ test("npm scripts keep syntax checks and the node test suite wired together", ()
   assert.match(packageJson.scripts.check, /node --check src\/main\.js/);
   assert.match(packageJson.scripts.check, /node --test/);
 });
+
+test("modal actions close before running the selected action", () => {
+  assert.match(mainSource, /if \(choice\.closeOnAction !== false\) closeModal\(\);/);
+});
+
+test("map cells keep a fixed size independent of tile contents", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(css, /--tile-size:/);
+  assert.match(css, /grid-template-columns: repeat\(10, var\(--tile-size\)\)/);
+  assert.match(css, /height: var\(--tile-size\)/);
+  assert.match(css, /width: var\(--tile-size\)/);
+});
+
+test("battle modal includes animated combat presentation styles", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(mainSource, /battle-summary/);
+  assert.match(css, /@keyframes heroLunge/);
+  assert.match(css, /@keyframes enemyCounter/);
+});
+
+test("latest-first log rendering pins the scroll position to the newest entry", () => {
+  assert.match(mainSource, /requestAnimationFrame\(\(\) => \{\n    ui\.log\.scrollTop = 0;/);
+});
