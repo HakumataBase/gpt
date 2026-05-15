@@ -84,6 +84,7 @@ h3 { font-size: 0.82rem; margin: 0.25rem 0 0.22rem; }
 }
 .panel { min-height: 0; overflow: hidden; padding: 0.42rem; }
 .status-panel { align-content: start; display: grid; gap: 0.18rem; }
+.command-block { display: grid; gap: 0.18rem; }
 .panel-heading { align-items: flex-start; display: flex; gap: 0.45rem; justify-content: space-between; }
 .save-actions { display: flex; flex-wrap: wrap; gap: 0.25rem; justify-content: flex-end; }
 .save-actions button { font-size: 0.68rem; min-height: 1.55rem; padding: 0.24rem 0.4rem; }
@@ -92,6 +93,10 @@ h3 { font-size: 0.82rem; margin: 0.25rem 0 0.22rem; }
 dt { color: var(--muted); font-size: 0.58rem; }
 dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .party-list, .objective-list, .log-list { margin: 0; padding-left: 1.2rem; }
+.info-drawer { background: rgba(255,255,255,0.045); border: 1px solid var(--line); border-radius: 0.55rem; padding: 0.18rem 0.35rem; }
+.info-drawer summary { color: var(--accent); cursor: pointer; font-size: 0.76rem; font-weight: 900; list-style-position: inside; }
+.info-drawer[open] { padding-bottom: 0.35rem; }
+.info-drawer[open] summary { margin-bottom: 0.25rem; }
 .party-list, .objective-list { display: grid; gap: 0.18rem; list-style: none; padding-left: 0; }
 .party-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .party-list li, .objective-list li { background: rgba(255,255,255,0.06); border-radius: 0.45rem; padding: 0.18rem 0.26rem; }
@@ -117,6 +122,9 @@ dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden
 .area-summary { color: var(--muted); font-size: 0.62rem; font-weight: 700; grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .map-panel { min-width: 0; }
+.map-panel.base-mode { align-content: start; display: grid; }
+.map-panel.base-mode .map-grid, .map-panel.base-mode .map-controls, .map-panel.base-mode .help-text, .map-panel.base-mode .area-notes { display: none !important; }
+.map-panel.base-mode #return-button { display: none; }
 #area-description { color: var(--muted); font-size: 0.82rem; line-height: 1.32; margin-bottom: 0; }
 .map-grid {
   display: grid;

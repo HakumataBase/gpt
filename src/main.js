@@ -78,6 +78,7 @@ const ui = {
   party: document.querySelector("#party-list"),
   objectives: document.querySelector("#objective-list"),
   areas: document.querySelector("#area-actions"),
+  mapPanel: document.querySelector(".map-panel"),
   map: document.querySelector("#map-grid"),
   areaName: document.querySelector("#area-name"),
   areaDescription: document.querySelector("#area-description"),
@@ -829,13 +830,15 @@ function renderAreaButtons() {
 function renderMap() {
   ui.map.innerHTML = "";
   if (!state.currentAreaId) {
+    ui.mapPanel.classList.add("base-mode");
     ui.areaName.textContent = "学校拠点";
-    ui.areaDescription.textContent = "探索先を選ぶか、休んで体勢を整えてください。部品が3つ集まったら屋上から救助信号を送れます。";
-    ui.map.innerHTML = `<div class="base-placeholder">拠点待機中</div>`;
+    ui.areaDescription.textContent = "拠点では左の探索先と行動ボタンだけ見れば進行できます。仲間や目標の詳細は必要な時だけ開いてください。";
+    ui.map.innerHTML = `<div class="base-placeholder">探索先を選択</div>`;
     ui.map.style.display = "flex";
     return;
   }
 
+  ui.mapPanel.classList.remove("base-mode");
   const area = AREAS[state.currentAreaId];
   ui.areaName.textContent = area.name;
   ui.areaDescription.textContent = area.description;

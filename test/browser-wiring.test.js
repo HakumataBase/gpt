@@ -118,3 +118,27 @@ test("debug mode exposes chapter-complete and ending shortcuts only behind a que
   assert.match(mainSource, /function debugCompleteChapterOne\(\)/);
   assert.match(mainSource, /function debugWin\(\)/);
 });
+
+test("hub keeps exploration actions before optional details", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+  const areaIndex = html.indexOf('id="area-actions"');
+  const partyIndex = html.indexOf('id="party-list"');
+  const objectiveIndex = html.indexOf('id="objective-list"');
+
+  assert.ok(areaIndex > 0);
+  assert.ok(partyIndex > areaIndex, "party details should not push exploration below the fold");
+  assert.ok(objectiveIndex > areaIndex, "objective details should not push exploration below the fold");
+  assert.match(html, /<details class="info-drawer">\s*<summary>仲間・状態を見る<\/summary>/);
+  assert.match(html, /<details class="info-drawer">\s*<summary>目標の詳細を見る<\/summary>/);
+  assert.match(css, /\.info-drawer summary/);
+});
+
+test("base map panel hides duplicate controls while at the hub", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(mainSource, /mapPanel: document\.querySelector\("\.map-panel"\)/);
+  assert.match(mainSource, /ui\.mapPanel\.classList\.add\("base-mode"\)/);
+  assert.match(mainSource, /ui\.mapPanel\.classList\.remove\("base-mode"\)/);
+  assert.match(css, /\.map-panel\.base-mode \.map-grid/);
+  assert.match(css, /\.map-panel\.base-mode #return-button \{ display: none;/);
+});

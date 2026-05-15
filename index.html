@@ -74,25 +74,34 @@
             </div>
           </dl>
 
-          <h3>仲間</h3>
-          <ul id="party-list" class="party-list"></ul>
+          <section class="command-block" aria-labelledby="area-actions-title">
+            <h3 id="area-actions-title">探索先</h3>
+            <div id="area-actions" class="stacked-actions"></div>
+          </section>
 
-          <h3>目標</h3>
-          <ul id="objective-list" class="objective-list"></ul>
+          <section class="command-block" aria-label="拠点行動">
+            <div class="base-actions">
+              <button id="scout-button" class="secondary-button" type="button">周辺を偵察する</button>
+              <button id="tactic-button" class="secondary-button" type="button">作戦を変更する</button>
+              <button id="ration-button" class="secondary-button" type="button">配給方針を変える</button>
+              <button id="guard-button" class="secondary-button" type="button">見張り当番を組む</button>
+              <button id="chapter-button" class="primary-button" type="button">一章を完了する</button>
+              <button id="rest-button" class="secondary-button" type="button">休む</button>
+              <button id="medicine-button" class="secondary-button" type="button">薬を使う</button>
+              <button id="barricade-button" class="secondary-button" type="button">バリケードを作る</button>
+              <button id="send-signal-button" class="primary-button wide-action" type="button">屋上から救助信号を送る</button>
+            </div>
+          </section>
 
-          <h3>探索先</h3>
-          <div id="area-actions" class="stacked-actions"></div>
-          <div class="base-actions" aria-label="拠点行動">
-            <button id="scout-button" class="secondary-button" type="button">周辺を偵察する</button>
-            <button id="tactic-button" class="secondary-button" type="button">作戦を変更する</button>
-            <button id="ration-button" class="secondary-button" type="button">配給方針を変える</button>
-            <button id="guard-button" class="secondary-button" type="button">見張り当番を組む</button>
-            <button id="chapter-button" class="primary-button" type="button">一章を完了する</button>
-            <button id="rest-button" class="secondary-button" type="button">休む</button>
-            <button id="medicine-button" class="secondary-button" type="button">薬を使う</button>
-            <button id="barricade-button" class="secondary-button" type="button">バリケードを作る</button>
-            <button id="send-signal-button" class="primary-button wide-action" type="button">屋上から救助信号を送る</button>
-          </div>
+          <details class="info-drawer">
+            <summary>仲間・状態を見る</summary>
+            <ul id="party-list" class="party-list"></ul>
+          </details>
+
+          <details class="info-drawer">
+            <summary>目標の詳細を見る</summary>
+            <ul id="objective-list" class="objective-list"></ul>
+          </details>
         </aside>
 
         <section class="panel map-panel">
