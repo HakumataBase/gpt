@@ -93,6 +93,21 @@ test("cloneAreaState creates mutable map state and filters rescued allies", () =
   assert.equal(AREAS.school.terrain[0][0], "#", "area templates must not be mutated by exploration state");
 });
 
+
+test("area templates use expanded 14x14 maps with separate decor layers", () => {
+  for (const area of Object.values(AREAS)) {
+    assert.equal(area.terrain.length, 14);
+    assert.equal(area.layers.decor.length, 14);
+    for (const row of area.terrain) assert.equal(row.length, 14);
+    for (const row of area.layers.decor) assert.equal(row.length, 14);
+  }
+
+  const areaState = cloneAreaState(AREAS.school);
+  assert.equal(areaState.layers.decor[1][3], "d");
+  areaState.layers.decor[1][3] = " ";
+  assert.equal(AREAS.school.layers.decor[1][3], "d", "decor layer templates must not be mutated by exploration state");
+});
+
 test("completed events are filtered from future area clones", () => {
   const state = createInitialState();
 
@@ -677,6 +692,7 @@ test("save data serializes and restores campaign progress", () => {
   const areaState = cloneAreaState(AREAS.hospital, state.rescued, getAreaDanger(state, "hospital"), state.completedEvents);
   state.currentAreaId = "hospital";
   state.terrain = areaState.terrain;
+  state.layers = areaState.layers;
   state.entities = areaState.entities;
   state.player = { x: 2, y: 3 };
   pushLog(state, "セーブ前のログ");
@@ -708,8 +724,11 @@ test("save data serializes and restores campaign progress", () => {
   assert.equal(restored.entities.some((entity) => entity.type === "event" && entity.event === "ward"), false);
   assert.equal(restored.logs.at(-1), "セーブ前のログ");
 
+  const originalDecor = state.layers.decor[1][3];
   restored.terrain[0][0] = ".";
+  restored.layers.decor[1][3] = " ";
   assert.equal(state.terrain[0][0], "#", "restored terrain must not share mutable rows with saved state");
+  assert.equal(state.layers.decor[1][3], originalDecor, "restored decor layers must not share mutable rows with saved state");
 });
 
 test("save data restoration falls back safely for invalid fields", () => {

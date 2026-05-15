@@ -94,25 +94,48 @@ export const AREAS = {
     danger: 1,
     timeCost: 1,
     description: "仲間イベントと部品が見つかりやすい。序盤の安全な探索先。",
+    background: "assets/areas/school.svg",
     terrain: [
-      "##########",
-      "#........#",
-      "#..##....#",
-      "#........#",
-      "#..####..#",
-      "#........#",
-      "#..##....#",
-      "#.......X#",
-      "#........#",
-      "##########",
+      "##############",
+      "#............#",
+      "#..##........#",
+      "#..##..##....#",
+      "#......##....#",
+      "#..####......#",
+      "#............#",
+      "#....##..##..#",
+      "#....##..##..#",
+      "#............#",
+      "#..##........#",
+      "#..........X.#",
+      "#............#",
+      "##############",
     ],
+    layers: {
+      decor: [
+        "              ",
+        "   d      b   ",
+        "   ll         ",
+        "   ll  dd     ",
+        "       bb     ",
+        "  dddd        ",
+        "      f       ",
+        "    ll  dd    ",
+        "    ll  bb    ",
+        "        w     ",
+        "  dd          ",
+        "          r   ",
+        "     s        ",
+        "              ",
+      ],
+    },
     start: { x: 1, y: 1 },
     entities: [
-      { type: "item", x: 4, y: 1, loot: "school" },
-      { type: "enemy", x: 7, y: 2, enemy: "walker" },
-      { type: "event", x: 5, y: 3, event: "locker" },
-      { type: "ally", x: 5, y: 5, ally: "akari" },
-      { type: "item", x: 6, y: 7, loot: "parts" },
+      { type: "item", x: 5, y: 1, loot: "school" },
+      { type: "enemy", x: 10, y: 2, enemy: "walker" },
+      { type: "event", x: 7, y: 4, event: "locker" },
+      { type: "ally", x: 6, y: 7, ally: "akari" },
+      { type: "item", x: 10, y: 10, loot: "parts" },
     ],
   },
   market: {
@@ -120,26 +143,49 @@ export const AREAS = {
     danger: 3,
     timeCost: 1,
     description: "食料と武器が多いが敵も増える。物資不足なら向かいたい。",
+    background: "assets/areas/market.svg",
     terrain: [
-      "##########",
-      "#........#",
-      "#..##....#",
-      "#.....##.#",
-      "#........#",
-      "#........#",
-      "#.###....#",
-      "#.......X#",
-      "#........#",
-      "##########",
+      "##############",
+      "#............#",
+      "#..##.....##.#",
+      "#..##.....##.#",
+      "#............#",
+      "#.....##.....#",
+      "#.....##.....#",
+      "#.###........#",
+      "#........##..#",
+      "#........##..#",
+      "#............#",
+      "#..........X.#",
+      "#............#",
+      "##############",
     ],
+    layers: {
+      decor: [
+        "              ",
+        "  c  c  k     ",
+        "  ww     ss   ",
+        "  bb     kk   ",
+        "       c      ",
+        "     ss       ",
+        "     kk       ",
+        " ggg     c    ",
+        "        ss    ",
+        "        kk    ",
+        "   c      g   ",
+        "          r   ",
+        "     k        ",
+        "              ",
+      ],
+    },
     start: { x: 1, y: 1 },
     entities: [
-      { type: "item", x: 4, y: 1, loot: "food" },
-      { type: "enemy", x: 7, y: 1, enemy: "runner" },
-      { type: "item", x: 1, y: 3, loot: "food" },
-      { type: "enemy", x: 3, y: 4, enemy: "walker" },
-      { type: "item", x: 5, y: 5, loot: "weapon" },
-      { type: "event", x: 6, y: 6, event: "basket" },
+      { type: "item", x: 5, y: 1, loot: "food" },
+      { type: "enemy", x: 10, y: 1, enemy: "runner" },
+      { type: "item", x: 1, y: 4, loot: "food" },
+      { type: "enemy", x: 4, y: 7, enemy: "walker" },
+      { type: "item", x: 8, y: 8, loot: "weapon" },
+      { type: "event", x: 10, y: 10, event: "basket" },
     ],
   },
   hospital: {
@@ -147,26 +193,49 @@ export const AREAS = {
     danger: 4,
     timeCost: 2,
     description: "薬と治療イベントがある高リスク地帯。汚染にも注意。",
+    background: "assets/areas/hospital.svg",
     terrain: [
-      "##########",
-      "#........#",
-      "#..####..#",
-      "#........#",
-      "#..##....#",
-      "#........#",
-      "#.....##.#",
-      "#.......X#",
-      "#........#",
-      "##########",
+      "##############",
+      "#............#",
+      "#..####......#",
+      "#..####..##..#",
+      "#........##..#",
+      "#..##........#",
+      "#..##........#",
+      "#.....##.....#",
+      "#.....##..##.#",
+      "#.........##.#",
+      "#............#",
+      "#..........X.#",
+      "#............#",
+      "##############",
     ],
+    layers: {
+      decor: [
+        "              ",
+        "   p    m     ",
+        "   bbbb       ",
+        "   bbbb  cc   ",
+        "         rr   ",
+        "  bb      m   ",
+        "  cc          ",
+        "     rr       ",
+        "     bb  cc   ",
+        "         rr   ",
+        "    m     p   ",
+        "          r   ",
+        "      p       ",
+        "              ",
+      ],
+    },
     start: { x: 1, y: 1 },
     entities: [
-      { type: "event", x: 6, y: 1, event: "ward" },
-      { type: "item", x: 1, y: 3, loot: "medicine" },
-      { type: "enemy", x: 4, y: 3, enemy: "brute" },
-      { type: "item", x: 6, y: 4, loot: "medicine" },
-      { type: "enemy", x: 5, y: 5, enemy: "runner" },
-      { type: "ally", x: 3, y: 6, ally: "shun" },
+      { type: "event", x: 9, y: 1, event: "ward" },
+      { type: "item", x: 1, y: 4, loot: "medicine" },
+      { type: "enemy", x: 7, y: 4, enemy: "brute" },
+      { type: "item", x: 10, y: 6, loot: "medicine" },
+      { type: "enemy", x: 6, y: 8, enemy: "runner" },
+      { type: "ally", x: 3, y: 10, ally: "shun" },
     ],
   },
   park: {
@@ -174,25 +243,48 @@ export const AREAS = {
     danger: 2,
     timeCost: 1,
     description: "壁が少なく敵を避けやすい。素材と小イベントが中心。",
+    background: "assets/areas/park.svg",
     terrain: [
-      "##########",
-      "#........#",
-      "#........#",
-      "#........#",
-      "#........#",
-      "#........#",
-      "#........#",
-      "#.......X#",
-      "#........#",
-      "##########",
+      "##############",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#............#",
+      "#..........X.#",
+      "#............#",
+      "##############",
     ],
+    layers: {
+      decor: [
+        "              ",
+        "  t     t     ",
+        "     g      t ",
+        "   t          ",
+        "       f      ",
+        "  g       t   ",
+        "      t       ",
+        "   f      g   ",
+        "          t   ",
+        " t    g       ",
+        "      f       ",
+        "          r   ",
+        "    t      g  ",
+        "              ",
+      ],
+    },
     start: { x: 1, y: 1 },
     entities: [
-      { type: "item", x: 5, y: 2, loot: "food" },
-      { type: "enemy", x: 3, y: 3, enemy: "runner" },
-      { type: "event", x: 6, y: 4, event: "flag" },
-      { type: "item", x: 4, y: 5, loot: "parts" },
-      { type: "enemy", x: 6, y: 6, enemy: "walker" },
+      { type: "item", x: 8, y: 2, loot: "food" },
+      { type: "enemy", x: 4, y: 4, enemy: "runner" },
+      { type: "event", x: 9, y: 5, event: "flag" },
+      { type: "item", x: 6, y: 8, loot: "parts" },
+      { type: "enemy", x: 10, y: 9, enemy: "walker" },
     ],
   },
 };
@@ -253,6 +345,7 @@ export function createInitialState() {
     areaNotes: createInitialAreaNotes(),
     player: { x: 0, y: 0 },
     terrain: [],
+    layers: { decor: [] },
     entities: [],
     party: [
       { ...CHARACTERS.hero, hp: CHARACTERS.hero.maxHp },
@@ -272,6 +365,7 @@ export function pushLog(state, message) {
 
 export function cloneAreaState(area, rescued = new Set(), currentDanger = area.danger, completedEvents = new Set(), collectedItems = new Set()) {
   const terrain = area.terrain.map((row) => row.split(""));
+  const layers = cloneAreaLayers(area);
   const areaId = getAreaId(area);
   const entities = area.entities
     .filter((entity) => entity.type !== "ally" || !rescued.has(entity.ally))
@@ -285,8 +379,21 @@ export function cloneAreaState(area, rescued = new Set(), currentDanger = area.d
 
   return {
     terrain,
+    layers,
     entities,
     player: { ...area.start },
+  };
+}
+
+function cloneAreaLayers(area) {
+  const width = area.terrain[0]?.length ?? 0;
+  const height = area.terrain.length;
+  const emptyLayer = Array.from({ length: height }, () => Array.from({ length: width }, () => " "));
+
+  return {
+    decor: area.layers?.decor
+      ? area.layers.decor.map((row) => row.split(""))
+      : emptyLayer,
   };
 }
 
@@ -897,6 +1004,7 @@ export function serializeGameState(state) {
       areaNotes: cloneAreaNotes(state.areaNotes),
       player: { ...state.player },
       terrain: state.terrain.map((row) => [...row]),
+      layers: cloneLayers(state.layers),
       entities: state.entities.map((entity) => ({ ...entity })),
       party: state.party.map((member) => ({ ...member })),
       rescued: [...state.rescued],
@@ -936,6 +1044,7 @@ export function deserializeGameState(serialized) {
     areaNotes: restoreAreaNotes(data.areaNotes),
     player: restorePoint(data.player, base.player),
     terrain: restoreTerrain(data.terrain),
+    layers: restoreLayers(data.layers),
     entities: restoreEntities(data.entities),
     party,
     rescued: restoreRescued(data.rescued, party),
@@ -978,6 +1087,16 @@ function restorePoint(point, fallback) {
 function restoreTerrain(terrain) {
   if (!Array.isArray(terrain)) return [];
   return terrain.map((row) => Array.isArray(row) ? [...row] : [...String(row)]);
+}
+
+function cloneLayers(layers = {}) {
+  return {
+    decor: Array.isArray(layers.decor) ? layers.decor.map((row) => [...row]) : [],
+  };
+}
+
+function restoreLayers(layers = {}) {
+  return cloneLayers(layers);
 }
 
 function restoreEntities(entities) {

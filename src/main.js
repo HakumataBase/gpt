@@ -57,6 +57,28 @@ const ASSET_PATHS = {
     akari: "assets/characters/akari.svg",
     shun: "assets/characters/shun.svg",
   },
+  areas: {
+    school: "assets/areas/school.svg",
+    market: "assets/areas/market.svg",
+    hospital: "assets/areas/hospital.svg",
+    park: "assets/areas/park.svg",
+  },
+};
+
+const DECOR_LABELS = {
+  b: "机",
+  c: "箱",
+  d: "扉",
+  f: "旗",
+  g: "草",
+  k: "店",
+  l: "棚",
+  m: "薬",
+  p: "器",
+  r: "道",
+  s: "物",
+  t: "木",
+  w: "窓",
 };
 
 const DEBUG_ENABLED = new URLSearchParams(window.location.search).has("debug");
@@ -117,6 +139,7 @@ function enterArea(areaId) {
   state.currentAreaId = areaId;
   const areaState = cloneAreaState(area, state.rescued, getAreaDanger(state, areaId), state.completedEvents, state.collectedItems);
   state.terrain = areaState.terrain;
+  state.layers = areaState.layers;
   state.entities = areaState.entities;
   state.player = areaState.player;
   recordAreaVisit(state, areaId);
@@ -136,6 +159,7 @@ function returnToBase() {
   state.currentAreaId = null;
   state.entities = [];
   state.terrain = [];
+  state.layers = { decor: [] };
   advanceTime(area.timeCost);
   addLog(`拠点へ帰還した。${area.timeCost}区切り分の時間が経過した。`);
   if (dangerChange.changed) {
@@ -833,6 +857,8 @@ function renderMap() {
     ui.mapPanel.classList.add("base-mode");
     ui.areaName.textContent = "学校拠点周辺図";
     ui.areaDescription.textContent = "拠点から周辺マップへ出て、目的地ノードを選んで探索に向かいます。危険度と残り要素を見て行き先を決めてください。";
+    ui.map.style.removeProperty("--map-columns");
+    ui.map.style.backgroundImage = "";
     renderBaseMap();
     return;
   }
@@ -840,30 +866,73 @@ function renderMap() {
   ui.mapPanel.classList.remove("base-mode");
   const area = AREAS[state.currentAreaId];
   ui.areaName.textContent = area.name;
-  ui.areaDescription.textContent = area.description;
+  ui.areaDescription.textContent = `${area.description} 背景画像つきの14×14多層マップです。`;
   ui.map.style.display = "grid";
+  ui.map.style.setProperty("--map-columns", state.terrain[0]?.length ?? 0);
+  ui.map.style.backgroundImage = `linear-gradient(180deg, rgba(12,16,32,.1), rgba(12,16,32,.82)), url(${ASSET_PATHS.areas[state.currentAreaId]})`;
 
   for (let y = 0; y < state.terrain.length; y += 1) {
     for (let x = 0; x < state.terrain[y].length; x += 1) {
       const tile = document.createElement("div");
       const terrain = state.terrain[y][x];
+      const decor = state.layers?.decor?.[y]?.[x] ?? " ";
       const entity = state.entities.find((item) => item.x === x && item.y === y);
       const isPlayer = state.player.x === x && state.player.y === y;
       tile.className = "tile";
-      tile.textContent = terrain === "X" ? "出" : "";
+      tile.dataset.terrain = terrain;
+      tile.dataset.decor = decor.trim() ? decor : "none";
+      tile.setAttribute("aria-label", tileLabel(terrain, decor, entity, isPlayer));
       if (terrain === "#") tile.classList.add("wall");
       if (terrain === "X") tile.classList.add("exit");
+      if (decor.trim()) {
+        const decorLayer = document.createElement("span");
+        decorLayer.className = "tile-layer tile-decor";
+        decorLayer.textContent = DECOR_LABELS[decor] ?? "·";
+        tile.append(decorLayer);
+      }
+      if (terrain === "X") {
+        const exitLayer = document.createElement("span");
+        exitLayer.className = "tile-layer tile-exit";
+        exitLayer.textContent = "出";
+        tile.append(exitLayer);
+      }
       if (entity) {
         tile.classList.add(entity.type);
-        tile.textContent = entityLabel(entity);
+        tile.append(createEntityLayer(entity));
       }
       if (isPlayer) {
-        tile.className = "tile player";
-        tile.textContent = "主";
+        tile.classList.add("player");
+        tile.append(createCharacterLayer("hero", "主人公"));
       }
       ui.map.append(tile);
     }
   }
+}
+
+function createEntityLayer(entity) {
+  if (entity.type === "ally") return createCharacterLayer(entity.ally, entityLabel(entity));
+  const layer = document.createElement("span");
+  layer.className = "tile-layer tile-entity";
+  layer.textContent = entityLabel(entity);
+  return layer;
+}
+
+function createCharacterLayer(characterId, label) {
+  const image = document.createElement("img");
+  image.className = "tile-layer tile-character";
+  image.src = ASSET_PATHS.characters[characterId];
+  image.alt = label;
+  image.loading = "lazy";
+  return image;
+}
+
+function tileLabel(terrain, decor, entity, isPlayer) {
+  if (isPlayer) return "主人公";
+  if (entity) return entityLabel(entity);
+  if (terrain === "#") return "壁";
+  if (terrain === "X") return "出口";
+  if (decor.trim()) return DECOR_LABELS[decor] ?? "地形装飾";
+  return "床";
 }
 
 function renderBaseMap() {
@@ -883,7 +952,7 @@ function renderBaseMap() {
     button.type = "button";
     button.className = `base-map-node ${positions[areaId] ?? ""}`;
     button.disabled = state.gameOver;
-    button.style.backgroundImage = `linear-gradient(180deg, rgba(12,16,32,.12), rgba(12,16,32,.78)), url(assets/areas/${areaId}.svg)`;
+    button.style.backgroundImage = `linear-gradient(180deg, rgba(12,16,32,.12), rgba(12,16,32,.78)), url(${ASSET_PATHS.areas[areaId]})`;
     button.innerHTML = `<span class="node-name">${area.name}</span><span class="node-meta">危険度 ${summary.currentDanger} / ${area.timeCost}区切り</span><span class="node-summary">物${summary.itemCount} イ${summary.eventCount} 仲${summary.allyCount} 敵+${summary.reinforcementCount}</span>`;
     button.title = `${area.name}: 危険度 ${summary.currentDanger} / 物資${summary.itemCount} / イベント${summary.eventCount} / 仲間${summary.allyCount}`;
     button.addEventListener("click", () => enterArea(areaId));

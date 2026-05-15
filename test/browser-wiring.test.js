@@ -58,7 +58,7 @@ test("map cells keep a fixed size independent of tile contents", () => {
   const css = readFileSync("styles/main.css", "utf8");
 
   assert.match(css, /--tile-size:/);
-  assert.match(css, /grid-template-columns: repeat\(10, var\(--tile-size\)\)/);
+  assert.match(css, /grid-template-columns: repeat\(var\(--map-columns, 14\), var\(--tile-size\)\)/);
   assert.match(css, /height: var\(--tile-size\)/);
   assert.match(css, /width: var\(--tile-size\)/);
 });
@@ -109,6 +109,12 @@ test("replaceable visual assets are centralized and referenced by the UI", () =>
     assert.ok(existsSync(`assets/characters/${id}.svg`));
     assert.match(mainSource, new RegExp(`assets/characters/${id}\\.svg`));
   }
+  for (const id of ["school", "market", "hospital", "park"]) {
+    assert.ok(existsSync(`assets/areas/${id}.svg`));
+    assert.match(mainSource, new RegExp(`assets/areas/${id}\\.svg`));
+  }
+  assert.match(mainSource, /createCharacterLayer/);
+  assert.match(mainSource, /tile-character/);
   assert.match(css, /url\("\.\.\/assets\/ui\/key-art\.svg"\)/);
 });
 
@@ -148,9 +154,23 @@ test("hub renders exploration destinations as a clickable surrounding map", () =
 
   assert.match(mainSource, /function renderBaseMap\(\)/);
   assert.match(mainSource, /className = `base-map-node/);
-  assert.match(mainSource, /url\(assets\/areas\/\$\{areaId\}\.svg\)/);
+  assert.match(mainSource, /ASSET_PATHS\.areas\[areaId\]/);
   assert.match(mainSource, /button\.addEventListener\("click", \(\) => enterArea\(areaId\)\)/);
   assert.match(css, /\.base-map \{/);
   assert.match(css, /grid-template-areas: "\. school \." "park base market" "\. hospital \."/);
   assert.match(css, /\.base-map-node \{/);
+});
+
+
+test("exploration maps are expanded and rendered as layered background maps", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(mainSource, /14×14多層マップ/);
+  assert.match(mainSource, /state\.layers\?\.decor/);
+  assert.match(mainSource, /ui\.map\.style\.backgroundImage/);
+  assert.match(mainSource, /tile\.dataset\.terrain/);
+  assert.match(mainSource, /tile\.dataset\.decor/);
+  assert.match(css, /background-size: cover/);
+  assert.match(css, /\.tile-layer/);
+  assert.match(css, /\.tile-decor/);
 });

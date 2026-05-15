@@ -129,37 +129,49 @@ dd { font-size: 0.68rem; font-weight: 800; margin: 0.02rem 0 0; overflow: hidden
 .map-grid {
   display: grid;
   gap: 0.14rem;
+  background-position: center;
+  background-size: cover;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0.9rem;
   grid-auto-rows: var(--tile-size);
-  grid-template-columns: repeat(10, var(--tile-size));
+  grid-template-columns: repeat(var(--map-columns, 14), var(--tile-size));
   justify-content: center;
   margin: 0.35rem auto;
   max-width: 100%;
   overflow: hidden;
+  padding: 0.3rem;
   width: max-content;
 }
 .tile {
   align-items: center;
   aspect-ratio: 1 / 1;
-  background: var(--floor);
+  background: rgba(43, 51, 78, 0.8);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 0.52rem;
   display: flex;
-  font-size: 0.92rem;
+  font-size: 0.62rem;
   font-weight: 900;
   height: var(--tile-size);
   justify-content: center;
   line-height: 1;
   min-height: var(--tile-size);
   min-width: var(--tile-size);
+  position: relative;
   width: var(--tile-size);
 }
-.tile.wall { background: var(--wall); color: transparent; }
-.tile.player { background: linear-gradient(135deg, var(--safe), #2fbdff); color: #062015; }
-.tile.enemy { background: rgba(255, 95, 109, 0.22); color: var(--danger); }
-.tile.item { background: rgba(255, 204, 102, 0.2); color: var(--accent); }
-.tile.event { background: rgba(179, 121, 255, 0.22); color: #d4b3ff; }
-.tile.ally { background: rgba(92, 225, 169, 0.18); color: var(--safe); }
-.tile.exit { background: rgba(109, 183, 255, 0.2); color: var(--info); }
+.tile::before { background: rgba(255,255,255,0.035); border-radius: inherit; content: ""; inset: 0; position: absolute; }
+.tile[data-decor]:not([data-decor="none"])::after { background: rgba(255,255,255,0.08); border-radius: 0.3rem; content: ""; inset: 23%; position: absolute; }
+.tile.wall { background: rgba(72, 78, 98, 0.95); color: transparent; }
+.tile.player { background: linear-gradient(135deg, rgba(92,225,169,.72), rgba(47,189,255,.72)); color: #062015; }
+.tile.enemy { background: rgba(255, 95, 109, 0.28); color: var(--danger); }
+.tile.item { background: rgba(255, 204, 102, 0.24); color: var(--accent); }
+.tile.event { background: rgba(179, 121, 255, 0.26); color: #d4b3ff; }
+.tile.ally { background: rgba(92, 225, 169, 0.2); color: var(--safe); }
+.tile.exit { background: rgba(109, 183, 255, 0.25); color: var(--info); }
+.tile-layer { position: relative; z-index: 1; }
+.tile-decor { color: rgba(234,238,255,.58); font-size: .48rem; font-weight: 800; }
+.tile-entity, .tile-exit { align-items: center; background: rgba(11,14,24,.7); border-radius: 999px; display: flex; height: 1.28rem; justify-content: center; min-width: 1.28rem; padding: 0 .16rem; }
+.tile-character { border: 1px solid rgba(255,255,255,.55); border-radius: 999px; filter: drop-shadow(0 .12rem .22rem rgba(0,0,0,.55)); height: calc(var(--tile-size) - .44rem); object-fit: cover; width: calc(var(--tile-size) - .44rem); }
 
 .map-controls { display: grid; gap: 0.25rem; grid-template-columns: repeat(3, 3rem); justify-content: center; }
 .map-controls button { background: #2f3a5c; min-height: 1.9rem; padding: 0.35rem; }
