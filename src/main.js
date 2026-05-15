@@ -114,6 +114,7 @@ function enterArea(areaId) {
 
 function returnToBase() {
   if (!state.currentAreaId) return;
+  closeModal();
   const area = AREAS[state.currentAreaId];
   const dangerChange = increaseAreaDanger(state, state.currentAreaId);
   state.currentAreaId = null;
@@ -310,32 +311,17 @@ function checkEnemyContact() {
 }
 
 function startBattle(entity, entityIndex) {
-  const { enemy, tactic, partyAttack, enemyDamage, totalEnemyDamage, infectionGain, escapeChance, canDefeatSafely } = calculateBattlePreview(state, state.currentAreaId, entity.enemy);
+  const preview = calculateBattlePreview(state, state.currentAreaId, entity.enemy);
+  const { enemy, escapeChance } = preview;
 
   showChoice(
     enemy.name,
-    `${enemy.name}が立ちはだかった。作戦:${tactic.name} / 推定攻撃${partyAttack} / 被害${totalEnemyDamage} / 汚染+${infectionGain}。逃走成功率は約${Math.round(escapeChance * 100)}%です。`,
+    createBattlePreviewBody(preview),
     [
       {
         label: "戦う",
         primary: true,
-        action: () => {
-          if (canDefeatSafely) {
-            state.entities.splice(entityIndex, 1);
-            recordAreaNote(state, state.currentAreaId, "enemies");
-            state.morale = Math.min(100, state.morale + 3);
-            addLog(`${enemy.name}を倒した。士気が少し上がった。`);
-          } else {
-            damageParty(totalEnemyDamage);
-            infectParty(infectionGain);
-            state.entities.splice(entityIndex, 1);
-            recordAreaNote(state, state.currentAreaId, "enemies");
-            addLog(`${enemy.name}を辛くも倒した。全員が${totalEnemyDamage}ダメージを分け合い、旗汚染が${infectionGain}進んだ。`);
-          }
-          closeModal();
-          checkPartyDefeat();
-          render();
-        },
+        action: () => resolveFight(enemy, preview, entityIndex),
       },
       {
         label: "逃げる",
@@ -344,18 +330,80 @@ function startBattle(entity, entityIndex) {
           if (success) {
             state.morale = Math.max(0, state.morale - 4);
             addLog(`${enemy.name}から逃げ切った。士気が少し下がった。`);
+            showChoice("逃走成功", createBattleResultBody(enemy, ["全員で距離を取った。", `${enemy.name}の追撃を振り切った。`, "士気 -4。"]), [
+              { label: "探索へ戻る", primary: true, action: () => { closeModal(); render(); } },
+            ]);
           } else {
-            damageParty(enemyDamage);
+            damageParty(preview.enemyDamage);
             state.morale = Math.max(0, state.morale - 8);
-            addLog(`逃走に失敗した。追撃を受けて全員で${enemyDamage}ダメージを受けた。`);
+            addLog(`逃走に失敗した。追撃を受けて全員で${preview.enemyDamage}ダメージを受けた。`);
+            showChoice("逃走失敗", createBattleResultBody(enemy, ["足音が廊下に響く。", `${enemy.name}の追撃を受けた。`, `全員に ${preview.enemyDamage} ダメージ / 士気 -8。`]), [
+              { label: "探索へ戻る", primary: true, action: () => { closeModal(); checkPartyDefeat(); render(); } },
+            ]);
           }
-          closeModal();
-          checkPartyDefeat();
-          render();
         },
       },
     ],
   );
+}
+
+function resolveFight(enemy, preview, entityIndex) {
+  const lines = [
+    `作戦「${preview.tactic.name}」で前に出る。`,
+    `味方の総攻撃！ ${preview.partyAttack} ダメージ。`,
+  ];
+
+  if (preview.canDefeatSafely) {
+    state.entities.splice(entityIndex, 1);
+    recordAreaNote(state, state.currentAreaId, "enemies");
+    state.morale = Math.min(100, state.morale + 3);
+    lines.push(`${enemy.name}を押し切った。`, "士気 +3。");
+    addLog(`${enemy.name}を倒した。士気が少し上がった。`);
+  } else {
+    damageParty(preview.totalEnemyDamage);
+    infectParty(preview.infectionGain);
+    state.entities.splice(entityIndex, 1);
+    recordAreaNote(state, state.currentAreaId, "enemies");
+    lines.push(`${enemy.name}の反撃！ 全員で ${preview.totalEnemyDamage} ダメージを分け合った。`, `旗汚染 +${preview.infectionGain}。`, `${enemy.name}を辛くも倒した。`);
+    addLog(`${enemy.name}を辛くも倒した。全員が${preview.totalEnemyDamage}ダメージを分け合い、旗汚染が${preview.infectionGain}進んだ。`);
+  }
+
+  showChoice("戦闘結果", createBattleResultBody(enemy, lines), [
+    { label: "探索へ戻る", primary: true, action: () => { closeModal(); checkPartyDefeat(); render(); } },
+  ]);
+}
+
+function createBattlePreviewBody({ enemy, tactic, partyAttack, totalEnemyDamage, infectionGain, escapeChance }) {
+  return createBattleBody(enemy, [
+    `${enemy.name}が立ちはだかった。`,
+    `作戦:${tactic.name} / 推定攻撃:${partyAttack} / 被害:${totalEnemyDamage} / 汚染:+${infectionGain}`,
+    `逃走成功率 約${Math.round(escapeChance * 100)}%。`,
+  ]);
+}
+
+function createBattleResultBody(enemy, lines) {
+  return createBattleBody(enemy, lines);
+}
+
+function createBattleBody(enemy, lines) {
+  const body = document.createElement("div");
+  body.className = "battle-body";
+  const stage = document.createElement("div");
+  stage.className = "battle-stage";
+  stage.innerHTML = `
+    <div class="battle-side allies"><span class="battle-sprite">主</span><span>仲間</span></div>
+    <div class="battle-slash">⚔</div>
+    <div class="battle-side enemy"><span class="battle-sprite">${enemy.icon}</span><span>${enemy.name}</span></div>
+  `;
+  const list = document.createElement("ol");
+  list.className = "battle-lines";
+  lines.forEach((line) => {
+    const item = document.createElement("li");
+    item.textContent = line;
+    list.append(item);
+  });
+  body.append(stage, list);
+  return body;
 }
 
 function damageParty(totalDamage) {
@@ -625,7 +673,12 @@ function hasSavedGame() {
 
 function showChoice(title, body, choices) {
   ui.modalTitle.textContent = title;
-  ui.modalBody.textContent = body;
+  ui.modalBody.innerHTML = "";
+  if (body instanceof Node) {
+    ui.modalBody.append(body);
+  } else {
+    ui.modalBody.textContent = body;
+  }
   ui.modalActions.innerHTML = "";
   choices.forEach((choice) => {
     const button = document.createElement("button");
@@ -784,11 +837,12 @@ function renderAreaNotes() {
 
 function renderLogs() {
   ui.log.innerHTML = "";
-  state.logs.forEach((log) => {
+  [...state.logs].reverse().forEach((log) => {
     const item = document.createElement("li");
     item.textContent = log;
     ui.log.append(item);
   });
+  ui.log.scrollTop = 0;
 }
 
 function randomPick(items) {
