@@ -2,7 +2,6 @@
 setlocal
 set "URL=http://127.0.0.1:8000/"
 
-timeout /t 2 /nobreak >nul
-start "" "%URL%"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process '%URL%'"
 
 endlocal
