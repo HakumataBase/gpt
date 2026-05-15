@@ -83,7 +83,8 @@ if (Test-PortOpen -TargetPort $Port) {
   exit 0
 }
 
-$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+$loopback = [System.Net.IPAddress]::Parse("127.0.0.1")
+$listener = New-Object -TypeName System.Net.Sockets.TcpListener -ArgumentList $loopback, $Port
 
 try {
   $listener.Start()
@@ -101,9 +102,11 @@ Start-Process $Url
 try {
   while ($true) {
     $client = $listener.AcceptTcpClient()
+    $stream = $null
+    $reader = $null
     try {
       $stream = $client.GetStream()
-      $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::ASCII, $false, 1024, $true)
+      $reader = New-Object -TypeName System.IO.StreamReader -ArgumentList $stream, [System.Text.Encoding]::ASCII
       $requestLine = $reader.ReadLine()
       if ([string]::IsNullOrWhiteSpace($requestLine)) {
         Write-TextResponse -Stream $stream -StatusCode 400 -StatusText "Bad Request" -Message "Bad Request"
@@ -130,7 +133,7 @@ try {
       }
 
       $bytes = [System.IO.File]::ReadAllBytes($fullPath)
-      if ($parts[0] -eq "HEAD") { $bytes = [byte[]]::new(0) }
+      if ($parts[0] -eq "HEAD") { $bytes = New-Object -TypeName byte[] -ArgumentList 0 }
       Write-HttpResponse -Stream $stream -StatusCode 200 -StatusText "OK" -ContentType (Get-ContentType -Path $fullPath) -Body $bytes
     } catch {
       try {
@@ -138,9 +141,9 @@ try {
         Write-TextResponse -Stream $stream -StatusCode 500 -StatusText "Internal Server Error" -Message $message
       } catch {}
     } finally {
-      if ($reader) { $reader.Dispose() }
-      if ($stream) { $stream.Dispose() }
-      $client.Close()
+      if ($reader -ne $null) { $reader.Dispose() }
+      if ($stream -ne $null) { $stream.Dispose() }
+      if ($client -ne $null) { $client.Close() }
     }
   }
 } finally {

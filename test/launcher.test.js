@@ -15,8 +15,10 @@ test("Windows launcher bat delegates to the bundled PowerShell server", () => {
 });
 
 test("PowerShell launcher serves local files with a non-admin TCP server", () => {
-  assert.match(windowsLauncher, /\[System\.Net\.Sockets\.TcpListener\]::new\(\[System\.Net\.IPAddress\]::Loopback, \$Port\)/);
+  assert.match(windowsLauncher, /New-Object -TypeName System\.Net\.Sockets\.TcpListener -ArgumentList \$loopback, \$Port/);
   assert.doesNotMatch(windowsLauncher, /HttpListener/);
+  assert.doesNotMatch(windowsLauncher, /::new/);
+  assert.match(windowsLauncher, /New-Object -TypeName System\.IO\.StreamReader -ArgumentList \$stream, \[System\.Text\.Encoding\]::ASCII/);
   assert.match(windowsLauncher, /Start-Process \$Url/);
   assert.match(windowsLauncher, /index\.html/);
   assert.match(windowsLauncher, /text\/javascript; charset=utf-8/);
