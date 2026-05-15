@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>放課後フラッグパニック</title>
+    <link rel="stylesheet" href="styles/main.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero-card" aria-labelledby="game-title">
+        <p class="eyebrow">Prototype v0.1 / Browser Survival RPG</p>
+        <h1 id="game-title">放課後フラッグパニック</h1>
+        <p class="lead">
+          7日以内に通信機の部品を集め、校舎から救助信号を送れ。
+          探索・物資管理・仲間救出・戦闘を小さなマップで試せる初期版です。
+        </p>
+      </section>
+
+      <section class="game-layout" aria-label="ゲーム画面">
+        <aside class="panel status-panel">
+          <div class="panel-heading">
+            <h2>拠点情報</h2>
+            <div class="save-actions" aria-label="セーブ操作">
+              <button id="save-button" class="ghost-button" type="button">セーブ</button>
+              <button id="load-button" class="ghost-button" type="button">ロード</button>
+              <button id="restart-button" class="ghost-button" type="button">最初から</button>
+            </div>
+          </div>
+          <dl class="status-grid">
+            <div>
+              <dt>日付</dt>
+              <dd id="day-status">-</dd>
+            </div>
+            <div>
+              <dt>時間</dt>
+              <dd id="time-status">-</dd>
+            </div>
+            <div>
+              <dt>食料</dt>
+              <dd id="food-status">-</dd>
+            </div>
+            <div>
+              <dt>薬</dt>
+              <dd id="medicine-status">-</dd>
+            </div>
+            <div>
+              <dt>部品</dt>
+              <dd id="parts-status">-</dd>
+            </div>
+            <div>
+              <dt>痕跡</dt>
+              <dd id="traces-status">-</dd>
+            </div>
+            <div>
+              <dt>士気</dt>
+              <dd id="morale-status">-</dd>
+            </div>
+            <div>
+              <dt>警戒</dt>
+              <dd id="watch-status">-</dd>
+            </div>
+            <div>
+              <dt>作戦</dt>
+              <dd id="tactic-status">-</dd>
+            </div>
+            <div>
+              <dt>配給</dt>
+              <dd id="ration-status">-</dd>
+            </div>
+            <div>
+              <dt>章</dt>
+              <dd id="chapter-status">-</dd>
+            </div>
+          </dl>
+
+          <h3>仲間</h3>
+          <ul id="party-list" class="party-list"></ul>
+
+          <h3>目標</h3>
+          <ul id="objective-list" class="objective-list"></ul>
+
+          <h3>探索先</h3>
+          <div id="area-actions" class="stacked-actions"></div>
+          <button id="scout-button" class="secondary-button" type="button">周辺を偵察する</button>
+          <button id="tactic-button" class="secondary-button" type="button">作戦を変更する</button>
+          <button id="ration-button" class="secondary-button" type="button">配給方針を変える</button>
+          <button id="guard-button" class="secondary-button" type="button">見張り当番を組む</button>
+          <button id="chapter-button" class="primary-button" type="button">一章を完了する</button>
+          <button id="rest-button" class="secondary-button" type="button">休む</button>
+          <button id="medicine-button" class="secondary-button" type="button">薬を使う</button>
+          <button id="barricade-button" class="secondary-button" type="button">バリケードを作る</button>
+          <button id="send-signal-button" class="primary-button" type="button">屋上から救助信号を送る</button>
+        </aside>
+
+        <section class="panel map-panel">
+          <div class="panel-heading">
+            <div>
+              <h2 id="area-name">拠点</h2>
+              <p id="area-description">探索先を選んでください。</p>
+            </div>
+            <button id="return-button" class="secondary-button" type="button">拠点へ戻る</button>
+          </div>
+
+          <div id="map-grid" class="map-grid" aria-label="探索マップ"></div>
+
+          <div class="map-controls" aria-label="移動操作">
+            <button id="move-up" type="button">↑</button>
+            <button id="move-left" type="button">←</button>
+            <button id="move-down" type="button">↓</button>
+            <button id="move-right" type="button">→</button>
+          </div>
+          <p class="help-text">キーボードの矢印キー / WASD でも移動できます。</p>
+
+          <section class="area-notes" aria-labelledby="area-notes-title">
+            <h3 id="area-notes-title">探索メモ</h3>
+            <ul id="area-note-list"></ul>
+          </section>
+        </section>
+
+        <aside class="panel log-panel">
+          <h2>ログ</h2>
+          <ol id="log-list" class="log-list" aria-live="polite"></ol>
+        </aside>
+      </section>
+    </main>
+
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-card">
+        <h2 id="modal-title"></h2>
+        <p id="modal-body"></p>
+        <div id="modal-actions" class="modal-actions"></div>
+      </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
