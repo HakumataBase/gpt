@@ -1,0 +1,12 @@
+{
+  "name": "after-school-flag-panic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "拠点探索型サバイバルRPG『放課後フラッグパニック』の静的ブラウザゲームプロトタイプ。",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "check": "node --check src/game-core.js && node --check src/main.js && node --test",
+    "test": "node --test"
+  }
+}
