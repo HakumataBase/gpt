@@ -1,5 +1,6 @@
 import {
   AREAS,
+  HUB_AREA,
   REQUIRED_TRACES_FOR_TRUTH,
   ENEMIES,
   MAX_DAY,
@@ -77,6 +78,7 @@ const DECOR_LABELS = {
 };
 
 const DEBUG_ENABLED = new URLSearchParams(window.location.search).has("debug");
+const VIEWPORT_SIZE = 5;
 
 const state = createInitialState();
 
@@ -94,7 +96,6 @@ const ui = {
   chapter: document.querySelector("#chapter-status"),
   party: document.querySelector("#party-list"),
   objectives: document.querySelector("#objective-list"),
-  areas: document.querySelector("#area-actions"),
   mapPanel: document.querySelector(".map-panel"),
   map: document.querySelector("#map-grid"),
   areaName: document.querySelector("#area-name"),
@@ -133,6 +134,14 @@ function pressureLog(prefix, result) {
   addLog(`${prefix} 旗圧 ${result.before} → ${result.after}（${result.tier.name}）。`);
 }
 
+function resetBaseMap() {
+  const hubState = cloneAreaState(HUB_AREA);
+  state.player = hubState.player;
+  state.terrain = hubState.terrain;
+  state.layers = hubState.layers;
+  state.entities = hubState.entities;
+}
+
 function enterArea(areaId) {
   if (state.gameOver) return;
   const area = AREAS[areaId];
@@ -157,9 +166,7 @@ function returnToBase() {
   const area = AREAS[state.currentAreaId];
   const dangerChange = increaseAreaDanger(state, state.currentAreaId);
   state.currentAreaId = null;
-  state.entities = [];
-  state.terrain = [];
-  state.layers = { decor: [] };
+  resetBaseMap();
   advanceTime(area.timeCost);
   pressureLog("探索で足跡を残した。", increaseFlagPressure(state, area.timeCost * 4));
   addLog(`拠点へ帰還した。${area.timeCost}区切り分の時間が経過した。`);
@@ -217,7 +224,7 @@ function rest() {
 }
 
 function movePlayer(dx, dy) {
-  if (!state.currentAreaId || state.gameOver || !ui.modal.classList.contains("hidden")) return;
+  if (!state.terrain.length || state.gameOver || !ui.modal.classList.contains("hidden")) return;
   const next = { x: state.player.x + dx, y: state.player.y + dy };
   if (isWall(next.x, next.y)) {
     addLog("そこは通れない。別の道を探そう。");
@@ -226,7 +233,7 @@ function movePlayer(dx, dy) {
   }
   state.player = next;
   resolveTile();
-  if (!ui.modal.classList.contains("hidden") || !state.currentAreaId || state.gameOver) {
+  if (!ui.modal.classList.contains("hidden") || state.gameOver) {
     render();
     return;
   }
@@ -241,7 +248,7 @@ function isWall(x, y) {
 
 function resolveTile() {
   const terrain = state.terrain[state.player.y][state.player.x];
-  if (terrain === "X") {
+  if (terrain === "X" && state.currentAreaId) {
     showChoice("出口", "拠点へ帰還しますか？", [
       { label: "帰還する", primary: true, action: returnToBase },
       { label: "探索を続ける", action: closeModal },
@@ -253,7 +260,13 @@ function resolveTile() {
   if (entityIndex === -1) return;
   const entity = state.entities[entityIndex];
 
-  if (entity.type === "item") {
+  if (entity.type === "area") {
+    const area = AREAS[entity.areaId];
+    showChoice(`${area.name}へ向かう`, `${area.description} この探索先へ移動しますか？`, [
+      { label: "向かう", primary: true, action: () => { closeModal(); enterArea(entity.areaId); } },
+      { label: "町内に残る", action: closeModal },
+    ]);
+  } else if (entity.type === "item") {
     state.entities.splice(entityIndex, 1);
     collectItem(state, state.currentAreaId, entity);
     recordAreaNote(state, state.currentAreaId, "items");
@@ -352,7 +365,7 @@ function chaseSteps(entity) {
 }
 
 function isBlockedForEnemy(x, y) {
-  return isWall(x, y) || state.terrain[y][x] === "X" || state.entities.some((entity) => entity.x === x && entity.y === y && entity.type === "enemy");
+  return isWall(x, y) || state.terrain[y][x] === "X" || state.entities.some((entity) => entity.x === x && entity.y === y && (entity.type === "enemy" || entity.type === "area"));
 }
 
 function checkEnemyContact() {
@@ -797,7 +810,6 @@ function render() {
     </li>
   `).join("");
   renderObjectives();
-  renderAreaButtons();
   renderMap();
   renderAreaNotes();
   renderLogs();
@@ -844,50 +856,24 @@ function renderObjectives() {
   });
 }
 
-function renderAreaButtons() {
-  ui.areas.innerHTML = "";
-  Object.entries(AREAS).forEach(([id, area]) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "area-button";
-    button.disabled = !!state.currentAreaId || state.gameOver;
-    const currentDanger = getAreaDanger(state, id);
-    const dangerNote = currentDanger > area.danger ? `${area.danger}→${currentDanger}` : `${currentDanger}`;
-    const summary = getAreaExplorationSummary(state, id);
-    const scoutingNote = `物資${summary.itemCount} / イベント${summary.eventCount} / 仲間${summary.allyCount} / 追加敵${summary.reinforcementCount}`;
-    button.title = `${area.name}: 危険度 ${dangerNote} / ${area.timeCost}区切り消費 / ${scoutingNote}`;
-    button.setAttribute("aria-label", button.title);
-    button.innerHTML = `<span class="area-title">${area.name}</span><span class="area-meta">危${dangerNote}・${area.timeCost}区</span><span class="area-summary">物${summary.itemCount} イ${summary.eventCount} 仲${summary.allyCount} 敵+${summary.reinforcementCount}</span>`;
-    button.addEventListener("click", () => enterArea(id));
-    ui.areas.append(button);
-  });
-}
-
 function renderMap() {
   ui.map.innerHTML = "";
-  if (!state.currentAreaId) {
-    ui.mapPanel.classList.add("base-mode");
-    ui.areaName.textContent = "学校拠点周辺図";
-    ui.areaDescription.textContent = "拠点から周辺マップへ出て、目的地ノードを選んで探索に向かいます。危険度と残り要素を見て行き先を決めてください。";
-    ui.map.style.removeProperty("--map-columns");
-    ui.map.className = "map-grid";
-    ui.map.style.backgroundImage = "";
-    renderBaseMap();
-    return;
-  }
-
-  ui.mapPanel.classList.remove("base-mode");
-  const area = AREAS[state.currentAreaId];
-  ui.areaName.textContent = area.name;
-  ui.areaDescription.textContent = `${area.description} CSS背景つきの14×14多層マップです。`;
+  const isBase = !state.currentAreaId;
+  ui.mapPanel.classList.toggle("base-mode", isBase);
+  const area = isBase ? HUB_AREA : AREAS[state.currentAreaId];
+  ui.areaName.textContent = isBase ? "学校前の町内" : area.name;
+  ui.areaDescription.textContent = isBase
+    ? "拠点前の14×14町内マップです。目的地の看板に乗ると探索先へ向かえます。旗人間にも注意。"
+    : `${area.description} 主人公の周囲25マスだけが見える探索画面です。`;
   ui.map.style.display = "grid";
-  ui.map.style.setProperty("--map-columns", state.terrain[0]?.length ?? 0);
-  ui.map.className = `map-grid area-theme-${state.currentAreaId}`;
+  ui.map.style.setProperty("--map-columns", VIEWPORT_SIZE);
+  ui.map.className = `map-grid area-theme-${isBase ? "base" : state.currentAreaId}`;
 
-  for (let y = 0; y < state.terrain.length; y += 1) {
-    for (let x = 0; x < state.terrain[y].length; x += 1) {
+  const viewport = getViewportBounds();
+  for (let y = viewport.top; y <= viewport.bottom; y += 1) {
+    for (let x = viewport.left; x <= viewport.right; x += 1) {
       const tile = document.createElement("div");
-      const terrain = state.terrain[y][x];
+      const terrain = state.terrain[y]?.[x] ?? "#";
       const decor = state.layers?.decor?.[y]?.[x] ?? " ";
       const entity = state.entities.find((item) => item.x === x && item.y === y);
       const isPlayer = state.player.x === x && state.player.y === y;
@@ -912,6 +898,17 @@ function renderMap() {
       if (entity) {
         tile.classList.add(entity.type);
         tile.append(createEntityLayer(entity));
+        if (entity.type === "area") {
+          tile.tabIndex = 0;
+          tile.role = "button";
+          tile.addEventListener("click", () => enterArea(entity.areaId));
+          tile.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              enterArea(entity.areaId);
+            }
+          });
+        }
       }
       if (isPlayer) {
         tile.classList.add("player");
@@ -920,6 +917,17 @@ function renderMap() {
       ui.map.append(tile);
     }
   }
+}
+
+function getViewportBounds() {
+  const height = state.terrain.length;
+  const width = state.terrain[0]?.length ?? 0;
+  const half = Math.floor(VIEWPORT_SIZE / 2);
+  const maxLeft = Math.max(0, width - VIEWPORT_SIZE);
+  const maxTop = Math.max(0, height - VIEWPORT_SIZE);
+  const left = Math.min(maxLeft, Math.max(0, state.player.x - half));
+  const top = Math.min(maxTop, Math.max(0, state.player.y - half));
+  return { left, top, right: left + VIEWPORT_SIZE - 1, bottom: top + VIEWPORT_SIZE - 1 };
 }
 
 function createEntityLayer(entity) {
@@ -947,32 +955,8 @@ function tileLabel(terrain, decor, entity, isPlayer) {
   return "床";
 }
 
-function renderBaseMap() {
-  ui.map.style.display = "block";
-  ui.map.innerHTML = `<div class="base-map" aria-label="拠点周辺マップ"></div>`;
-  const baseMap = ui.map.querySelector(".base-map");
-  const positions = {
-    school: "node-school",
-    market: "node-market",
-    hospital: "node-hospital",
-    park: "node-park",
-  };
-
-  Object.entries(AREAS).forEach(([areaId, area]) => {
-    const summary = getAreaExplorationSummary(state, areaId);
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `base-map-node ${positions[areaId] ?? ""}`;
-    button.disabled = state.gameOver;
-    button.classList.add(`area-theme-${areaId}`);
-    button.innerHTML = `<span class="node-name">${area.name}</span><span class="node-meta">危険度 ${summary.currentDanger} / ${area.timeCost}区切り</span><span class="node-summary">物${summary.itemCount} イ${summary.eventCount} 仲${summary.allyCount} 敵+${summary.reinforcementCount}</span>`;
-    button.title = `${area.name}: 危険度 ${summary.currentDanger} / 物資${summary.itemCount} / イベント${summary.eventCount} / 仲間${summary.allyCount}`;
-    button.addEventListener("click", () => enterArea(areaId));
-    baseMap.append(button);
-  });
-}
-
 function entityLabel(entity) {
+  if (entity.type === "area") return entity.label ?? AREAS[entity.areaId]?.name?.[0] ?? "行";
   if (entity.type === "enemy") return ENEMIES[entity.enemy].icon;
   if (entity.type === "item") return "物";
   if (entity.type === "event") return "?";

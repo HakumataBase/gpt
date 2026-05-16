@@ -233,7 +233,6 @@ dd { color: #151018; font-size: 0.68rem; font-weight: 900; margin: 0.02rem 0 0; 
 .area-summary { color: var(--muted); font-size: 0.62rem; font-weight: 800; grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .map-panel.base-mode { align-content: start; display: grid; }
-.map-panel.base-mode .map-controls, .map-panel.base-mode .help-text, .map-panel.base-mode .area-notes { display: none !important; }
 .map-panel.base-mode #return-button { display: none; }
 #area-description { color: var(--muted); font-size: 0.82rem; font-weight: 800; line-height: 1.32; margin-bottom: 0; }
 .map-grid {
@@ -257,6 +256,7 @@ dd { color: #151018; font-size: 0.68rem; font-weight: 900; margin: 0.02rem 0 0; 
   padding: 0.36rem;
   width: max-content;
 }
+.area-theme-base { background-image: linear-gradient(180deg, rgba(255,255,255,.14), rgba(68,74,58,.72)), repeating-linear-gradient(0deg, transparent 0 .42rem, rgba(255,255,255,.16) .42rem .46rem), linear-gradient(135deg, #9aa27e, #535845); }
 .area-theme-school { background-image: linear-gradient(180deg, rgba(255,255,255,.16), rgba(36,53,78,.68)), repeating-linear-gradient(0deg, transparent 0 .42rem, rgba(255,255,255,.18) .42rem .46rem), linear-gradient(135deg, #95a77b, #465c74); }
 .area-theme-market { background-image: linear-gradient(180deg, rgba(255,255,255,.14), rgba(85,49,31,.7)), repeating-linear-gradient(0deg, transparent 0 .42rem, rgba(255,255,255,.14) .42rem .46rem), linear-gradient(135deg, #b58a54, #5c3a25); }
 .area-theme-hospital { background-image: linear-gradient(180deg, rgba(255,255,255,.16), rgba(42,65,76,.72)), repeating-linear-gradient(0deg, transparent 0 .42rem, rgba(255,255,255,.15) .42rem .46rem), linear-gradient(135deg, #b7c6b9, #527180); }
@@ -287,6 +287,8 @@ dd { color: #151018; font-size: 0.68rem; font-weight: 900; margin: 0.02rem 0 0; 
 .tile.enemy { background: linear-gradient(180deg, #d23a32 0 48%, #f0e5c3 49%); color: #290907; }
 .tile.item { background: #f5c760; color: #3b2109; }
 .tile.event { background: #9170c2; color: #fff4d4; }
+.tile.area { background: linear-gradient(180deg, #ffcf68 0 48%, #f9efce 49%); color: #3b2109; cursor: pointer; }
+.tile.area:focus { outline: 3px solid #fff8df; outline-offset: 1px; }
 .tile.ally { background: linear-gradient(180deg, #49b36a 0 48%, #f9efce 49%); color: #082214; }
 .tile.exit { background: #6ca7d7; color: #071b2e; }
 .tile-layer { position: relative; z-index: 1; }
@@ -393,16 +395,3 @@ dd { color: #151018; font-size: 0.68rem; font-weight: 900; margin: 0.02rem 0 0; 
   .panel { max-height: none; }
   .map-grid { --tile-size: clamp(1.75rem, 8vw, 2.55rem); }
 }
-
-.base-placeholder { align-items: center; color: var(--muted); display: flex; font-size: 1.05rem; font-weight: 900; height: 100%; justify-content: center; min-height: 160px; width: 100%; }
-.base-map { background: radial-gradient(circle at 50% 46%, rgba(255,204,102,.38), transparent 32%), #b7c4a4; border: .45rem solid var(--bezel); border-radius: .65rem; display: grid; gap: 0.7rem; grid-template-areas: ". school ." "park base market" ". hospital ."; grid-template-columns: 1fr 1fr 1fr; margin: 0.55rem auto 0; max-width: 50rem; min-height: min(54vh, 29rem); padding: 0.9rem; position: relative; width: 100%; }
-.base-map::after { align-items: center; background: linear-gradient(180deg, #5db9ff 0 48%, #f9efce 49%); border: 3px solid #121018; border-radius: 999px 999px 55% 55%; color: #101018; content: "拠点"; display: flex; font-size: 0.9rem; font-weight: 900; grid-area: base; height: 4.4rem; justify-self: center; place-self: center; width: 4.4rem; z-index: 0; }
-.base-map-node { align-self: center; background-position: center; background-size: cover; border: 3px solid #121018; border-radius: .38rem; box-shadow: .25rem .25rem 0 rgba(0,0,0,.34); color: #101018; display: grid; min-height: 6.3rem; overflow: hidden; padding: 0.58rem; position: relative; text-align: left; }
-.base-map-node::before { background: rgba(235,107,62,.82); content: ""; inset: auto auto 0 0; height: .3rem; position: absolute; width: 100%; }
-.base-map-node .node-name { font-size: 1rem; font-weight: 900; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
-.base-map-node .node-meta { align-self: end; color: #7a2d12; font-size: .74rem; font-weight: 900; }
-.base-map-node .node-summary { color: #3d352c; font-size: .68rem; font-weight: 900; }
-.node-school { grid-area: school; }
-.node-market { grid-area: market; }
-.node-hospital { grid-area: hospital; }
-.node-park { grid-area: park; }

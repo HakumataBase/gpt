@@ -296,6 +296,56 @@ export const AREAS = {
   },
 };
 
+
+export const HUB_AREA = {
+  name: "学校前の町内",
+  danger: 1,
+  description: "拠点前の住宅街。細い路地と店先を抜けて探索先へ向かう。旗人間が迷い込むこともある。",
+  terrain: [
+    "##############",
+    "#....##......#",
+    "#.##....##...#",
+    "#....#.......#",
+    "###..#..##...#",
+    "#....#.......#",
+    "#..####..##..#",
+    "#............#",
+    "#..##..####..#",
+    "#......#.....#",
+    "#..##..#..##.#",
+    "#......#.....#",
+    "#...##....#..#",
+    "##############",
+  ],
+  layers: {
+    decor: [
+      "              ",
+      " h  s     k   ",
+      " ww    rr     ",
+      "   r h     c  ",
+      "     r  ss    ",
+      " h   r      k ",
+      "   ww    rr   ",
+      " r    f    r  ",
+      "   ss   ww    ",
+      " h    r       ",
+      "   kk r  h    ",
+      " r    r     c ",
+      "  s    h  r   ",
+      "              ",
+    ],
+  },
+  start: { x: 6, y: 7 },
+  entities: [
+    { type: "area", x: 6, y: 1, areaId: "school", label: "校" },
+    { type: "area", x: 12, y: 5, areaId: "market", label: "商" },
+    { type: "area", x: 2, y: 12, areaId: "hospital", label: "病" },
+    { type: "area", x: 11, y: 11, areaId: "park", label: "公" },
+    { type: "enemy", x: 3, y: 5, enemy: "walker", hub: true },
+    { type: "enemy", x: 10, y: 8, enemy: "runner", hub: true },
+  ],
+};
+
 export const CHARACTERS = {
   hero: { id: "hero", name: "主人公", role: "指揮", maxHp: 34, attack: 8, infection: 0 },
   minato: { id: "minato", name: "ミナト", role: "前衛", maxHp: 38, attack: 10, infection: 0 },
@@ -352,10 +402,10 @@ export function createInitialState() {
     watchLevel: 0,
     areaDanger: createInitialAreaDanger(),
     areaNotes: createInitialAreaNotes(),
-    player: { x: 0, y: 0 },
-    terrain: [],
-    layers: { decor: [] },
-    entities: [],
+    player: { ...HUB_AREA.start },
+    terrain: HUB_AREA.terrain.map((row) => row.split("")),
+    layers: cloneAreaLayers(HUB_AREA),
+    entities: HUB_AREA.entities.map((entity) => ({ ...entity })),
     party: [
       { ...CHARACTERS.hero, hp: CHARACTERS.hero.maxHp },
       { ...CHARACTERS.minato, hp: CHARACTERS.minato.maxHp },
@@ -471,7 +521,7 @@ export function isWallAt(terrain, x, y) {
 }
 
 export function getAreaDanger(state, areaId) {
-  return state.areaDanger?.[areaId] ?? AREAS[areaId].danger;
+  return state.areaDanger?.[areaId] ?? AREAS[areaId]?.danger ?? HUB_AREA.danger;
 }
 
 export function increaseAreaDanger(state, areaId, amount = AREA_DANGER_INCREASE) {

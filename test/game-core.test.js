@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   AREAS,
+  HUB_AREA,
   RATION_POLICIES,
   TACTICS,
   REQUIRED_TRACES_FOR_TRUTH,
@@ -80,6 +81,12 @@ test("initial state starts at the school base with the hero and Minato", () => {
   assert.equal(state.completedEvents.size, 0);
   assert.equal(state.collectedItems.size, 0);
   assert.equal(state.areaNotes.school.visits, 0);
+  assert.deepEqual(state.player, HUB_AREA.start);
+  assert.equal(state.terrain.length, 14);
+  assert.equal(state.terrain[0].length, 14);
+  assert.equal(state.entities.filter((entity) => entity.type === "area").length, 4);
+  assert.equal(state.entities.some((entity) => entity.type === "enemy"), true);
+  assert.equal(getAreaDanger(state, null), HUB_AREA.danger);
 });
 
 test("cloneAreaState creates mutable map state and filters rescued allies", () => {

@@ -76,8 +76,8 @@ test("every static HTML button is wired to a click handler", () => {
 });
 
 test("dynamic UI buttons are wired when rendered", () => {
-  assert.match(mainSource, /button\.addEventListener\("click", \(\) => enterArea\(id\)\)/);
-  assert.match(mainSource, /button\.addEventListener\("click", \(\) => enterArea\(areaId\)\)/);
+  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => enterArea\(entity\.areaId\)\)/);
+  assert.match(mainSource, /tile\.addEventListener\("keydown", \(event\) =>/);
   assert.match(mainSource, /button\.addEventListener\("click", \(\) => \{\s*if \(choice\.closeOnAction !== false\) closeModal\(\);\s*choice\.action\(\);\s*\}\)/s);
 });
 
@@ -119,16 +119,14 @@ test("desktop layout avoids internal scroll containers", () => {
   assert.match(css, /body \{[^}]*overflow: hidden;/);
 });
 
-test("exploration controls use compact two-row cards that fit the hub", () => {
+test("base command controls stay compact without duplicate destination buttons", () => {
   const css = readFileSync("styles/main.css", "utf8");
 
-  assert.match(mainSource, /class=\"area-title\"/);
-  assert.match(mainSource, /class=\"area-meta\"/);
-  assert.match(mainSource, /class=\"area-summary\"/);
-  assert.doesNotMatch(mainSource, /<small>危険度/);
-  assert.match(css, /\.stacked-actions \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.equal(html.includes('id="area-actions"'), false);
+  assert.doesNotMatch(mainSource, /function renderAreaButtons/);
+  assert.match(mainSource, /entity\.type === "area"/);
   assert.match(css, /\.base-actions \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(css, /\.area-button \{[^}]*min-height: 2\.35rem;/);
+  assert.match(css, /\.tile\.area/);
 });
 
 test("visual presentation stays text-only for branch updates", () => {
@@ -168,49 +166,48 @@ test("debug mode exposes chapter-complete and ending shortcuts only behind a que
   assert.match(mainSource, /function debugWin\(\)/);
 });
 
-test("hub keeps exploration actions before optional details", () => {
+test("hub keeps optional details below the compact command actions", () => {
   const css = readFileSync("styles/main.css", "utf8");
-  const areaIndex = html.indexOf('id="area-actions"');
+  const commandIndex = html.indexOf('aria-label="拠点行動"');
   const partyIndex = html.indexOf('id="party-list"');
   const objectiveIndex = html.indexOf('id="objective-list"');
 
-  assert.ok(areaIndex > 0);
-  assert.ok(partyIndex > areaIndex, "party details should not push exploration below the fold");
-  assert.ok(objectiveIndex > areaIndex, "objective details should not push exploration below the fold");
+  assert.ok(commandIndex > 0);
+  assert.ok(partyIndex > commandIndex, "party details should not push commands below the fold");
+  assert.ok(objectiveIndex > commandIndex, "objective details should not push commands below the fold");
   assert.match(html, /<details class="info-drawer">\s*<summary>仲間・状態を見る<\/summary>/);
   assert.match(html, /<details class="info-drawer">\s*<summary>目標の詳細を見る<\/summary>/);
   assert.match(css, /\.info-drawer summary/);
 });
 
-test("base map panel hides duplicate controls while at the hub", () => {
+test("base map panel hides only the duplicate return control while keeping movement", () => {
   const css = readFileSync("styles/main.css", "utf8");
 
   assert.match(mainSource, /mapPanel: document\.querySelector\("\.map-panel"\)/);
-  assert.match(mainSource, /ui\.mapPanel\.classList\.add\("base-mode"\)/);
-  assert.match(mainSource, /ui\.mapPanel\.classList\.remove\("base-mode"\)/);
-  assert.match(css, /\.map-panel\.base-mode \.map-controls/);
+  assert.match(mainSource, /ui\.mapPanel\.classList\.toggle\("base-mode", isBase\)/);
+  assert.doesNotMatch(css, /\.map-panel\.base-mode \.map-controls/);
   assert.match(css, /\.map-panel\.base-mode #return-button \{ display: none;/);
 });
 
-test("hub renders exploration destinations as a clickable surrounding map", () => {
+test("hub renders exploration destinations inside the playable 14x14 map", () => {
   const css = readFileSync("styles/main.css", "utf8");
 
-  assert.match(mainSource, /function renderBaseMap\(\)/);
-  assert.match(mainSource, /className = `base-map-node/);
-  assert.match(mainSource, /button\.classList\.add\(`area-theme-\$\{areaId\}`\)/);
-  assert.match(mainSource, /button\.addEventListener\("click", \(\) => enterArea\(areaId\)\)/);
-  assert.match(css, /\.base-map \{/);
-  assert.match(css, /grid-template-areas: "\. school \." "park base market" "\. hospital \."/);
-  assert.match(css, /\.base-map-node \{/);
+  assert.match(mainSource, /HUB_AREA/);
+  assert.match(mainSource, /entity\.type === "area"/);
+  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => enterArea\(entity\.areaId\)\)/);
+  assert.match(css, /\.area-theme-base/);
+  assert.match(css, /\.tile\.area/);
 });
 
 
-test("exploration maps are expanded and rendered as layered background maps", () => {
+test("exploration maps are 5x5 viewports over layered 14x14 maps", () => {
   const css = readFileSync("styles/main.css", "utf8");
 
-  assert.match(mainSource, /14×14多層マップ/);
+  assert.match(mainSource, /const VIEWPORT_SIZE = 5;/);
+  assert.match(mainSource, /function getViewportBounds\(\)/);
+  assert.match(mainSource, /--map-columns", VIEWPORT_SIZE/);
   assert.match(mainSource, /state\.layers\?\.decor/);
-  assert.match(mainSource, /area-theme-\$\{state\.currentAreaId\}/);
+  assert.match(mainSource, /area-theme-\$\{isBase \? "base" : state\.currentAreaId\}/);
   assert.match(mainSource, /tile\.dataset\.terrain/);
   assert.match(mainSource, /tile\.dataset\.decor/);
   assert.match(css, /background-size: cover/);
