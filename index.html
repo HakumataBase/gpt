@@ -109,15 +109,21 @@
             <button id="return-button" class="secondary-button" type="button">拠点へ戻る</button>
           </div>
 
-          <div id="map-grid" class="map-grid" aria-label="探索マップ"></div>
+          <div class="top-screen-body">
+            <div id="map-grid" class="map-grid" aria-label="探索マップ"></div>
 
-          <div class="map-controls" aria-label="移動操作">
-            <button id="move-up" type="button">↑</button>
-            <button id="move-left" type="button">←</button>
-            <button id="move-down" type="button">↓</button>
-            <button id="move-right" type="button">→</button>
+            <div class="movement-cluster">
+              <div class="map-controls" aria-label="移動操作">
+                <button id="move-up" type="button">↑</button>
+                <button id="move-left" type="button">←</button>
+                <button id="move-down" type="button">↓</button>
+                <button id="move-right" type="button">→</button>
+              </div>
+              <p class="help-text">矢印キー / WASD でも移動できます。</p>
+            </div>
           </div>
-          <p class="help-text">キーボードの矢印キー / WASD でも移動できます。</p>
+
+          <div id="live-message" class="live-message" aria-live="polite" aria-atomic="true"></div>
 
           <section class="area-notes" aria-labelledby="area-notes-title">
             <h3 id="area-notes-title">探索メモ</h3>

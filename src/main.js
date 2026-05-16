@@ -102,6 +102,7 @@ const ui = {
   areaDescription: document.querySelector("#area-description"),
   areaNotes: document.querySelector("#area-note-list"),
   log: document.querySelector("#log-list"),
+  liveMessage: document.querySelector("#live-message"),
   returnButton: document.querySelector("#return-button"),
   restButton: document.querySelector("#rest-button"),
   guardButton: document.querySelector("#guard-button"),
@@ -127,6 +128,14 @@ const ui = {
 
 function addLog(message) {
   pushLog(state, message);
+  showLiveMessage(message);
+}
+
+function showLiveMessage(message) {
+  ui.liveMessage.textContent = message;
+  ui.liveMessage.style.animation = "none";
+  void ui.liveMessage.offsetWidth;
+  ui.liveMessage.style.animation = "";
 }
 
 function pressureLog(prefix, result) {

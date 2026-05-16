@@ -159,6 +159,31 @@ test("UI uses a dual-screen pocket-console presentation", () => {
   assert.match(css, /repeating-linear-gradient\(0deg/);
 });
 
+
+test("map controls sit beside the top screen map with a transient top-right message", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(html, /<div class="top-screen-body">[\s\S]*id="map-grid"[\s\S]*<div class="movement-cluster">[\s\S]*class="map-controls"/);
+  assert.match(html, /id="live-message" class="live-message" aria-live="polite"/);
+  assert.match(mainSource, /liveMessage: document\.querySelector\("#live-message"\)/);
+  assert.match(mainSource, /function showLiveMessage\(message\)/);
+  assert.match(css, /\.top-screen-body \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(8rem, 10rem\)/);
+  assert.match(css, /\.live-message \{[^}]*position: absolute;[^}]*right: 0\.75rem;[^}]*top: 2\.2rem;/);
+  assert.match(css, /@keyframes messagePop/);
+});
+
+test("desktop panels use height-aware sizing so top and command screens stay visible", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(css, /--tile-size: clamp\(1\.45rem, 2dvh \+ 0\.35rem, 1\.95rem\)/);
+  assert.match(css, /grid-template-rows: minmax\(0, 1\.02fr\) minmax\(0, \.98fr\)/);
+  assert.match(css, /\.base-actions button \{[^}]*font-size: clamp\(0\.68rem, 1\.45dvh, 0\.78rem\)/);
+  assert.match(css, /#area-description \{[^}]*font-size: clamp\(0\.68rem, 1\.5dvh, 0\.82rem\)/);
+  assert.match(css, /\.area-notes li \{[^}]*font-size: clamp\(0\.56rem, 1\.25dvh, 0\.66rem\)/);
+  assert.match(css, /@media \(min-width: 1051px\) and \(max-height: 700px\)/);
+  assert.match(css, /\.hero-card::before, \.hero-card::after, \.eyebrow, \.lead \{ display: none; \}/);
+});
+
 test("debug mode exposes chapter-complete and ending shortcuts only behind a query flag", () => {
   assert.match(html, /id="debug-panel"/);
   assert.match(mainSource, /new URLSearchParams\(window\.location\.search\)\.has\("debug"\)/);
