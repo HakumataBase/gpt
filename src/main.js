@@ -12,7 +12,9 @@ import {
   applyGuardDuty,
   applyLoot,
   getAreaDanger,
+  getFlagPressureTier,
   increaseAreaDanger,
+  increaseFlagPressure,
   applyMedicineToMember,
   applyPartyDamage,
   applyRest,
@@ -42,6 +44,7 @@ import {
   recordAreaNote,
   recordAreaVisit,
   rescueAllyInState,
+  reduceFlagPressure,
   setRationPolicy,
   setTactic,
   deserializeGameState,
@@ -125,6 +128,11 @@ function addLog(message) {
   pushLog(state, message);
 }
 
+function pressureLog(prefix, result) {
+  if (!result.changed) return;
+  addLog(`${prefix} 旗圧 ${result.before} → ${result.after}（${result.tier.name}）。`);
+}
+
 function enterArea(areaId) {
   if (state.gameOver) return;
   const area = AREAS[areaId];
@@ -153,6 +161,7 @@ function returnToBase() {
   state.terrain = [];
   state.layers = { decor: [] };
   advanceTime(area.timeCost);
+  pressureLog("探索で足跡を残した。", increaseFlagPressure(state, area.timeCost * 4));
   addLog(`拠点へ帰還した。${area.timeCost}区切り分の時間が経過した。`);
   if (dangerChange.changed) {
     addLog(`${area.name}の危険度が${dangerChange.after}に上がった。連続探索は危険だ。`);
@@ -188,6 +197,7 @@ function guardDuty() {
   }
 
   addLog(`見張り当番を組んだ。警戒 Lv${result.before} → Lv${result.after} / 士気 +${result.moraleGain}。`);
+  if (result.pressure?.changed) addLog(`見張りが接近ルートを潰した。旗圧 ${result.pressure.before} → ${result.pressure.after}。`);
   advanceTime(1);
   render();
 }
@@ -195,7 +205,7 @@ function guardDuty() {
 function rest() {
   if (state.gameOver || state.currentAreaId) return;
   const dangerChanges = applyRest(state);
-  addLog("拠点で休んだ。HPが回復し、旗汚染が少し下がった。");
+  addLog("拠点で休んだ。HPが回復し、旗汚染と旗圧が少し下がった。");
   if (hasPartyMember(state, "akari")) {
     addLog("アカリの応急手当で、休息の回復効果が高まった。");
   }
@@ -271,34 +281,42 @@ function runEvent(eventId) {
   const events = {
     locker: {
       title: "ロッカーの物音",
-      body: "内側から小さな声がする。開ければ誰かを助けられるかもしれないが、敵を呼ぶ危険もある。",
+      body: "内側から小さな声がする。開ければ食料を得られるが、金属音で旗人間が寄ってくる。見捨てれば静かだが士気は落ちる。",
       choices: [
-        { label: "開ける", primary: true, action: () => { state.morale += 6; state.food += 1; addLog("ロッカーから保存食を見つけ、士気が上がった。"); closeModal(); render(); } },
-        { label: "無視する", action: () => { state.morale -= 4; addLog("見なかったことにした。士気が少し下がった。"); closeModal(); render(); } },
+        { label: "こじ開ける", primary: true, action: () => { state.morale = Math.min(100, state.morale + 8); state.food += 1; pressureLog("ロッカーの音に旗人間が反応した。", increaseFlagPressure(state, 8)); addLog("ロッカーから保存食を見つけ、助けを求めるメモで全員の士気が上がった。"); closeModal(); render(); } },
+        { label: "音を立てず印だけ残す", action: () => { state.morale = Math.max(0, state.morale - 3); pressureLog("静かに離れた。", reduceFlagPressure(state, 4)); addLog("救えたかもしれない声を背にした。士気が少し下がったが、敵の注意は逸れた。"); closeModal(); render(); } },
+      ],
+    },
+    broadcast: {
+      title: "放送室の赤いランプ",
+      body: "放送設備はまだ生きている。校内放送で旗人間を誘導すれば退路を作れるが、声を出せば校舎全体がざわつく。",
+      choices: [
+        { label: "囮放送で退路を作る", primary: true, action: () => { addTrace(state); state.morale = Math.min(100, state.morale + 10); pressureLog("放送で群れを一方向へ誘導した。", reduceFlagPressure(state, 14)); addLog("放送室から退路を確保した。事件の痕跡も1つ記録し、第一章の突破口が見えた。"); closeModal(); render(); } },
+        { label: "部品だけ外して逃げる", action: () => { state.parts += 1; pressureLog("壊れたスピーカーが大きな音を立てた。", increaseFlagPressure(state, 16)); addLog("放送アンプから使える部品を外したが、校舎中で旗が揺れ始めた。部品 +1。"); closeModal(); render(); } },
       ],
     },
     basket: {
       title: "倒れた自転車",
       body: "カゴの袋を調べますか？音を立てると近くの敵が反応するかもしれない。",
       choices: [
-        { label: "調べる", primary: true, action: () => { state.food += 2; addLog("袋から食料を2つ見つけた。遠くで旗人間の声がした。"); closeModal(); render(); } },
-        { label: "やめる", action: () => { addLog("危険を避け、先を急いだ。"); closeModal(); render(); } },
+        { label: "調べる", primary: true, action: () => { state.food += 2; pressureLog("自転車のベルが鳴った。", increaseFlagPressure(state, 10)); addLog("袋から食料を2つ見つけた。遠くで旗人間の声がした。急いで離れよう。"); closeModal(); render(); } },
+        { label: "やめる", action: () => { pressureLog("音を立てずに通り抜けた。", reduceFlagPressure(state, 3)); addLog("危険を避け、先を急いだ。物資はないが足取りは軽い。 "); closeModal(); render(); } },
       ],
     },
     ward: {
       title: "閉鎖病棟",
       body: "薬品棚がある。中に入ると汚染された空気を吸い込むかもしれない。",
       choices: [
-        { label: "入る", primary: true, action: () => { state.medicine += 2; addTrace(state); infectParty(5); addLog("薬を2つ回収し、閉鎖病棟の記録から痕跡を1つ得たが、全員の旗汚染が上がった。"); closeModal(); render(); } },
-        { label: "避ける", action: () => { addLog("病棟には入らず、扉を閉じた。"); closeModal(); render(); } },
+        { label: "突入して薬を回収", primary: true, action: () => { state.medicine += 2; addTrace(state); infectParty(5); pressureLog("病棟の警報が短く鳴った。", increaseFlagPressure(state, 8)); addLog("薬を2つ回収し、閉鎖病棟の記録から痕跡を1つ得たが、全員の旗汚染が上がった。 "); closeModal(); render(); } },
+        { label: "入口だけ封鎖", action: () => { state.morale = Math.min(100, state.morale + 4); pressureLog("病棟の扉を塞いだ。", reduceFlagPressure(state, 8)); addLog("病棟には入らず、扉を塞いだ。薬は得られないが夜の不安が少し減った。 "); closeModal(); render(); } },
       ],
     },
     flag: {
       title: "黒い旗の破片",
       body: "事件の手がかりかもしれない。持ち帰ると通信機の修理にも使えそうだ。",
       choices: [
-        { label: "拾う", primary: true, action: () => { state.parts += 1; addTrace(state); infectParty(4); addLog("旗の破片を部品として回収し、痕跡を1つ得た。少し気分が悪い。"); closeModal(); render(); } },
-        { label: "燃やす", action: () => { state.morale += 8; addLog("旗の破片を燃やした。全員の士気が上がった。"); closeModal(); render(); } },
+        { label: "拾う", primary: true, action: () => { state.parts += 1; addTrace(state); infectParty(4); pressureLog("旗の破片が脈打った。", increaseFlagPressure(state, 8)); addLog("旗の破片を部品として回収し、痕跡を1つ得た。少し気分が悪い。 "); closeModal(); render(); } },
+        { label: "燃やす", action: () => { state.morale = Math.min(100, state.morale + 8); pressureLog("黒い煙が消え、周囲が静まった。", reduceFlagPressure(state, 10)); addLog("旗の破片を燃やした。全員の士気が上がった。 "); closeModal(); render(); } },
       ],
     },
   };
@@ -389,11 +407,13 @@ function resolveFight(enemy, preview, entityIndex) {
     state.entities.splice(entityIndex, 1);
     recordAreaNote(state, state.currentAreaId, "enemies");
     state.morale = Math.min(100, state.morale + 3);
+    pressureLog("短期決着で周囲の旗が少し静まった。", reduceFlagPressure(state, 2));
     lines.push(`${enemy.name}を押し切った。`, "士気 +3。");
     addLog(`${enemy.name}を倒した。士気が少し上がった。`);
   } else {
     damageParty(preview.totalEnemyDamage);
     infectParty(preview.infectionGain);
+    pressureLog("乱戦の音で旗人間が近づいた。", increaseFlagPressure(state, 5));
     state.entities.splice(entityIndex, 1);
     recordAreaNote(state, state.currentAreaId, "enemies");
     lines.push(`${enemy.name}の反撃！ 全員で ${preview.totalEnemyDamage} ダメージを分け合った。`, `旗汚染 +${preview.infectionGain}。`, `${enemy.name}を辛くも倒した。`);
@@ -409,7 +429,7 @@ function createBattlePreviewBody({ enemy, tactic, partyAttack, totalEnemyDamage,
   return createBattleBody(enemy, [
     `${enemy.name}が立ちはだかった。`,
     `作戦:${tactic.name} / 推定攻撃:${partyAttack} / 被害:${totalEnemyDamage} / 汚染:+${infectionGain}`,
-    `逃走成功率 約${Math.round(escapeChance * 100)}%。`,
+    `逃走成功率 約${Math.round(escapeChance * 100)}%。旗圧:${getFlagPressureTier(state).name}。`,
   ], {
     mode: "preview",
     partyDamage: partyAttack,
@@ -765,7 +785,7 @@ function render() {
   ui.parts.textContent = `${state.parts} / ${REQUIRED_PARTS}`;
   ui.traces.textContent = `${state.traces} / ${REQUIRED_TRACES_FOR_TRUTH}`;
   ui.morale.textContent = state.morale;
-  ui.watch.textContent = `Lv${state.watchLevel ?? 0}`;
+  ui.watch.textContent = `Lv${state.watchLevel ?? 0} / 旗圧${getFlagPressureTier(state).pressure}`;
   ui.tactic.textContent = getTactic(state).name;
   const chapterProgress = getChapterProgress(state);
   ui.ration.textContent = getRationPolicy(state).name;
@@ -998,6 +1018,7 @@ function debugCompleteChapterOne() {
   state.player = { x: 0, y: 0 };
   recordAreaVisit(state, "school");
   completeEvent(state, "locker");
+  completeEvent(state, "broadcast");
   rescueAllyInState(state, "akari");
   state.parts = Math.max(state.parts, 1);
   if (!state.completedChapters.has(1)) completeChapter(state);

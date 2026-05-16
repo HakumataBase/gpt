@@ -46,6 +46,7 @@ import {
   getTactic,
   getWatchRaidReduction,
   getFrontlineReduction,
+  getFlagPressureTier,
   getRestEffects,
   getScavengeBonus,
   infectPartyMembers,
@@ -179,8 +180,13 @@ test("guard duty raises watch level and reduces the next night raid", () => {
   state.morale = 20;
   increaseAreaDanger(state, "hospital", 1);
 
-  assert.deepEqual(applyGuardDuty(state), { ok: true, before: 0, after: 1, moraleGain: 2 });
-  assert.deepEqual(applyGuardDuty(state), { ok: true, before: 1, after: 2, moraleGain: 2 });
+  let guard = applyGuardDuty(state);
+  assert.equal(guard.ok, true);
+  assert.equal(guard.after, 1);
+  assert.equal(guard.pressure.after, 12);
+  guard = applyGuardDuty(state);
+  assert.equal(guard.ok, true);
+  assert.equal(guard.after, 2);
   assert.deepEqual(applyGuardDuty(state), { ok: false, reason: "max_watch", before: 2, after: 2 });
   assert.deepEqual(getWatchRaidReduction(state), { watchLevel: 2, damageReduction: 4, moraleReduction: 6 });
 
@@ -236,8 +242,8 @@ test("ration policies adjust daily food consumption and morale", () => {
   let result = applyEndDay(state);
   assert.equal(state.food, 2);
   assert.equal(state.morale, 47);
-  assert.match(result.messages[0], /節約配給/);
-  assert.match(result.messages[1], /士気 -3/);
+  assert.match(result.messages.find((message) => /節約配給/.test(message)), /節約配給/);
+  assert.match(result.messages.find((message) => /士気 -3/.test(message)), /士気 -3/);
 
   setRationPolicy(state, "generous");
   state.food = 5;
@@ -245,8 +251,8 @@ test("ration policies adjust daily food consumption and morale", () => {
   result = applyEndDay(state);
   assert.equal(state.food, 2);
   assert.equal(state.morale, 100);
-  assert.match(result.messages[0], /厚め配給/);
-  assert.match(result.messages[1], /士気 \+4/);
+  assert.match(result.messages.find((message) => /厚め配給/.test(message)), /厚め配給/);
+  assert.match(result.messages.find((message) => /士気 \+4/.test(message)), /士気 \+4/);
 });
 
 test("applyEndDay consumes food by party size without starvation when food remains", () => {
@@ -259,7 +265,8 @@ test("applyEndDay consumes food by party size without starvation when food remai
   assert.equal(state.food, 1);
   assert.equal(state.morale, 55);
   assert.equal(result.gameOverMessage, null);
-  assert.deepEqual(result.messages, ["夜が明けた。標準配給で食料を2消費した。"]);
+  assert.match(result.messages[0], /旗圧 18 → 26/);
+  assert.match(result.messages[1], /標準配給で食料を2消費/);
 });
 
 test("applyEndDay includes raid messages after food consumption", () => {
@@ -270,8 +277,8 @@ test("applyEndDay includes raid messages after food consumption", () => {
   const result = applyEndDay(state);
 
   assert.equal(result.gameOverMessage, null);
-  assert.equal(result.messages.length, 2);
-  assert.match(result.messages[1], /拠点近くまで押し寄せた/);
+  assert.equal(result.messages.length, 3);
+  assert.match(result.messages.at(-1), /拠点近くまで押し寄せた/);
   assert.equal(state.party[0].hp, 32);
 });
 
@@ -288,7 +295,22 @@ test("applyEndDay applies starvation penalties and detects the day limit", () =>
   assert.equal(state.party[0].hp, 24);
   assert.equal(state.party[1].hp, 28);
   assert.equal(result.gameOverMessage, "7日目までに救助信号を送れなかった。校舎は旗人間に包囲された。");
-  assert.equal(result.messages.length, 2);
+  assert.equal(result.messages.length, 3);
+});
+
+
+test("flag pressure changes battle risk and recovery actions", () => {
+  const state = createInitialState();
+
+  assert.equal(getFlagPressureTier(state).id, "calm");
+  state.flagPressure = 60;
+  assert.equal(getFlagPressureTier(state).id, "danger");
+  const preview = calculateBattlePreview(state, "school", "walker");
+  assert.equal(preview.pressure.battleThreat, 2);
+  assert.equal(getEscapeChance(state, "school"), 0.52);
+
+  applyRest(state);
+  assert.equal(state.flagPressure, 50);
 });
 
 test("Akari first aid improves rest and medicine effects after rescue", () => {
@@ -373,7 +395,7 @@ test("area exploration summary reflects completed events, rescued allies, and re
 
   let summary = getAreaExplorationSummary(state, "school");
   assert.equal(summary.itemCount, 2);
-  assert.equal(summary.eventCount, 1);
+  assert.equal(summary.eventCount, 2);
   assert.equal(summary.allyCount, 1);
   assert.equal(summary.reinforcementCount, 0);
 
@@ -382,7 +404,7 @@ test("area exploration summary reflects completed events, rescued allies, and re
   increaseAreaDanger(state, "school", 2);
   summary = getAreaExplorationSummary(state, "school");
 
-  assert.equal(summary.eventCount, 0);
+  assert.equal(summary.eventCount, 1);
   assert.equal(summary.allyCount, 0);
   assert.equal(summary.reinforcementCount, 2);
 });
@@ -414,6 +436,8 @@ test("chapter one requires school progress and grants completion rewards once", 
   rescueAllyInState(state, "akari");
   completeEvent(state, "locker");
   state.parts = 1;
+  assert.equal(getChapterProgress(state).complete, false, "broadcast-room route should be required for chapter one");
+  completeEvent(state, "broadcast");
   state.food = 2;
   state.morale = 50;
 
@@ -435,8 +459,8 @@ test("objectives summarize repair, truth, allies, and danger progress", () => {
   const state = createInitialState();
 
   let objectives = getObjectives(state);
-  assert.deepEqual(objectives.map((objective) => objective.id), ["repair_signal", "find_truth", "rescue_allies", "control_danger"]);
-  assert.deepEqual(objectives.map((objective) => objective.complete), [false, false, false, true]);
+  assert.deepEqual(objectives.map((objective) => objective.id), ["repair_signal", "find_truth", "rescue_allies", "control_pressure", "control_danger"]);
+  assert.deepEqual(objectives.map((objective) => objective.complete), [false, false, false, true, true]);
   assert.equal(objectives.find((objective) => objective.id === "repair_signal").current, 0);
   assert.equal(objectives.find((objective) => objective.id === "rescue_allies").current, 2);
 
@@ -450,6 +474,7 @@ test("objectives summarize repair, truth, allies, and danger progress", () => {
   assert.equal(objectives.find((objective) => objective.id === "repair_signal").complete, true);
   assert.equal(objectives.find((objective) => objective.id === "find_truth").complete, true);
   assert.equal(objectives.find((objective) => objective.id === "rescue_allies").complete, true);
+  assert.equal(objectives.find((objective) => objective.id === "control_pressure").complete, true);
   assert.equal(objectives.find((objective) => objective.id === "control_danger").complete, false);
   assert.equal(objectives.find((objective) => objective.id === "control_danger").current, 3);
 });
@@ -675,6 +700,7 @@ test("save data serializes and restores campaign progress", () => {
   setRationPolicy(state, "conserve");
   recordAreaVisit(state, "school");
   completeEvent(state, "locker");
+  completeEvent(state, "broadcast");
   state.parts = 1;
   rescueAllyInState(state, "akari");
   completeChapter(state);

@@ -23,6 +23,11 @@ export const RAID_MORALE_LOSS = 6;
 export const WATCH_MAX_LEVEL = 2;
 export const WATCH_DAMAGE_REDUCTION = 2;
 export const WATCH_MORALE_REDUCTION = 3;
+export const MAX_FLAG_PRESSURE = 100;
+export const FLAG_PRESSURE_TIME_GAIN = 6;
+export const FLAG_PRESSURE_NIGHT_GAIN = 8;
+export const FLAG_PRESSURE_REST_RECOVERY = 10;
+export const FLAG_PRESSURE_GUARD_RECOVERY = 6;
 export const SAVE_VERSION = 1;
 
 export const CHAPTERS = {
@@ -134,7 +139,9 @@ export const AREAS = {
       { type: "item", x: 5, y: 1, loot: "school" },
       { type: "enemy", x: 10, y: 2, enemy: "walker" },
       { type: "event", x: 7, y: 4, event: "locker" },
+      { type: "enemy", x: 11, y: 5, enemy: "teacher" },
       { type: "ally", x: 6, y: 7, ally: "akari" },
+      { type: "event", x: 2, y: 10, event: "broadcast" },
       { type: "item", x: 10, y: 10, loot: "parts" },
     ],
   },
@@ -300,6 +307,7 @@ export const ENEMIES = {
   walker: { name: "旗歩き", hp: 18, attack: 6, infection: 4, icon: "旗" },
   runner: { name: "走る旗人間", hp: 16, attack: 8, infection: 6, icon: "走" },
   brute: { name: "大型旗人間", hp: 32, attack: 11, infection: 8, icon: "巨" },
+  teacher: { name: "旗先生", hp: 24, attack: 9, infection: 7, icon: "先" },
 };
 
 export const LOOT_TABLES = {
@@ -334,6 +342,7 @@ export function createInitialState() {
     parts: 0,
     traces: 0,
     morale: 55,
+    flagPressure: 18,
     gameOver: false,
     chapter: 1,
     completedChapters: new Set(),
@@ -361,6 +370,25 @@ export function createInitialState() {
 export function pushLog(state, message) {
   state.logs.push(message);
   if (state.logs.length > MAX_LOGS) state.logs.shift();
+}
+
+export function getFlagPressureTier(state) {
+  const pressure = clamp(toFiniteNumber(state.flagPressure, 0), 0, MAX_FLAG_PRESSURE);
+  if (pressure >= 80) return { id: "critical", name: "包囲寸前", pressure, battleThreat: 3, escapePenalty: 0.18 };
+  if (pressure >= 55) return { id: "danger", name: "接近中", pressure, battleThreat: 2, escapePenalty: 0.12 };
+  if (pressure >= 30) return { id: "uneasy", name: "ざわめき", pressure, battleThreat: 1, escapePenalty: 0.06 };
+  return { id: "calm", name: "静か", pressure, battleThreat: 0, escapePenalty: 0 };
+}
+
+export function increaseFlagPressure(state, amount) {
+  const before = clamp(toFiniteNumber(state.flagPressure, 0), 0, MAX_FLAG_PRESSURE);
+  const after = clamp(before + amount, 0, MAX_FLAG_PRESSURE);
+  state.flagPressure = after;
+  return { before, after, changed: before !== after, tier: getFlagPressureTier(state) };
+}
+
+export function reduceFlagPressure(state, amount) {
+  return increaseFlagPressure(state, -amount);
 }
 
 export function cloneAreaState(area, rescued = new Set(), currentDanger = area.danger, completedEvents = new Set(), collectedItems = new Set()) {
@@ -532,7 +560,8 @@ export function getBattleInfectionGain(state, baseInfection) {
 }
 
 export function getEscapeChance(state, areaId) {
-  return clamp(0.68 - getAreaDanger(state, areaId) * 0.04 + getTactic(state).escapeModifier, 0.15, 0.9);
+  const pressure = getFlagPressureTier(state);
+  return clamp(0.68 - getAreaDanger(state, areaId) * 0.04 - pressure.escapePenalty + getTactic(state).escapeModifier, 0.12, 0.9);
 }
 
 export function recordAreaVisit(state, areaId) {
@@ -639,6 +668,11 @@ export function getChapterProgress(state) {
       complete: state.completedEvents.has("locker"),
     },
     {
+      id: "secure_broadcast",
+      title: "放送室から退路を確保する",
+      complete: state.completedEvents.has("broadcast"),
+    },
+    {
       id: "secure_part",
       title: "通信機修理用の部品を1個以上確保する",
       complete: state.parts >= 1,
@@ -707,6 +741,15 @@ export function getObjectives(state) {
       complete: rescuedCount >= Object.keys(CHARACTERS).length,
     },
     {
+      id: "control_pressure",
+      title: "旗人間の包囲を抑える",
+      description: "見張り・休息・イベント選択で旗人間の接近を抑え、危険な探索判断を避ける。",
+      current: Math.max(0, MAX_FLAG_PRESSURE - clamp(toFiniteNumber(state.flagPressure, 0), 0, MAX_FLAG_PRESSURE)),
+      target: MAX_FLAG_PRESSURE,
+      unit: "圧",
+      complete: clamp(toFiniteNumber(state.flagPressure, 0), 0, MAX_FLAG_PRESSURE) < 55,
+    },
+    {
       id: "control_danger",
       title: "夜襲を抑える",
       description: "危険度が高い探索先を休息やバリケードで抑え、拠点への夜襲を防ぐ。",
@@ -750,7 +793,8 @@ export function applyGuardDuty(state) {
   const after = Math.min(WATCH_MAX_LEVEL, before + 1);
   state.watchLevel = after;
   state.morale = Math.min(100, state.morale + 2);
-  return { ok: true, before, after, moraleGain: 2 };
+  const pressure = reduceFlagPressure(state, FLAG_PRESSURE_GUARD_RECOVERY);
+  return { ok: true, before, after, moraleGain: 2, pressure };
 }
 
 export function getWatchRaidReduction(state) {
@@ -795,7 +839,9 @@ export function applyEndDay(state) {
   const policy = getRationPolicy(state);
   const requiredFood = getDailyFoodNeed(state);
   state.day += 1;
+  const pressure = increaseFlagPressure(state, FLAG_PRESSURE_NIGHT_GAIN);
   state.food -= requiredFood;
+  if (pressure.changed) messages.push(`夜の間に旗人間の気配が濃くなった。旗圧 ${pressure.before} → ${pressure.after}。`);
   messages.push(`夜が明けた。${policy.name}配給で食料を${requiredFood}消費した。`);
 
   if (policy.moraleChange !== 0 && state.food >= 0) {
@@ -837,6 +883,7 @@ export function applyRest(state) {
     member.infection = Math.max(0, member.infection - effects.infection);
   });
   state.morale = Math.min(100, state.morale + 5);
+  reduceFlagPressure(state, FLAG_PRESSURE_REST_RECOVERY);
   return recoverAreaDanger(state);
 }
 
@@ -914,10 +961,11 @@ export function rescueAllyInState(state, allyId) {
 export function calculateBattlePreview(state, areaId, enemyId) {
   const enemy = ENEMIES[enemyId];
   const danger = getAreaDanger(state, areaId);
+  const pressure = getFlagPressureTier(state);
   const tactic = getTactic(state);
   const basePartyAttack = state.party.reduce((sum, member) => sum + Math.max(1, member.attack - Math.floor(member.infection / 35)), 0);
   const partyAttack = Math.max(state.party.length, basePartyAttack + tactic.attackModifier);
-  const rawEnemyDamage = Math.max(1, enemy.attack + danger - Math.floor(state.morale / 35));
+  const rawEnemyDamage = Math.max(1, enemy.attack + danger + pressure.battleThreat - Math.floor(state.morale / 35));
   const enemyDamage = reduceIncomingDamage(state, rawEnemyDamage);
   const totalEnemyDamage = Math.max(1, Math.ceil(enemyDamage * tactic.damageMultiplier * (enemy.hp > partyAttack ? 1.4 : 1)));
   return {
@@ -928,6 +976,7 @@ export function calculateBattlePreview(state, areaId, enemyId) {
     totalEnemyDamage,
     infectionGain: getBattleInfectionGain(state, enemy.infection),
     escapeChance: getEscapeChance(state, areaId),
+    pressure,
     canDefeatSafely: partyAttack >= enemy.hp,
   };
 }
@@ -993,6 +1042,7 @@ export function serializeGameState(state) {
       parts: state.parts,
       traces: state.traces,
       morale: state.morale,
+      flagPressure: clamp(toFiniteNumber(state.flagPressure, 0), 0, MAX_FLAG_PRESSURE),
       gameOver: state.gameOver,
       chapter: state.chapter,
       completedChapters: [...state.completedChapters],
@@ -1033,6 +1083,7 @@ export function deserializeGameState(serialized) {
     parts: toFiniteNumber(data.parts, base.parts),
     traces: toFiniteNumber(data.traces, base.traces),
     morale: clamp(toFiniteNumber(data.morale, base.morale), 0, 100),
+    flagPressure: clamp(toFiniteNumber(data.flagPressure, base.flagPressure), 0, MAX_FLAG_PRESSURE),
     gameOver: Boolean(data.gameOver),
     chapter: CHAPTERS[data.chapter] ? data.chapter : base.chapter,
     completedChapters: new Set(toArray(data.completedChapters).filter((chapterId) => CHAPTERS[chapterId])),
