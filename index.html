@@ -18,7 +18,7 @@
       </section>
 
       <section class="game-layout" aria-label="ゲーム画面">
-        <aside class="panel status-panel">
+        <aside class="panel status-panel" data-screen="Command Screen">
           <div class="panel-heading">
             <h2>拠点情報</h2>
             <div class="save-actions" aria-label="セーブ操作">
@@ -104,7 +104,7 @@
           </details>
         </aside>
 
-        <section class="panel map-panel">
+        <section class="panel map-panel" data-screen="Top Screen">
           <div class="panel-heading">
             <div>
               <h2 id="area-name">拠点</h2>
@@ -129,12 +129,12 @@
           </section>
         </section>
 
-        <aside class="panel log-panel">
+        <aside class="panel log-panel" data-screen="Message Log">
           <h2>ログ</h2>
           <ol id="log-list" class="log-list" aria-live="polite"></ol>
         </aside>
 
-        <aside id="debug-panel" class="panel debug-panel hidden" aria-label="デバッグ操作">
+        <aside id="debug-panel" class="panel debug-panel hidden" data-screen="Debug" aria-label="デバッグ操作">
           <h2>Debug</h2>
           <button id="debug-complete-chapter" class="ghost-button" type="button">一章クリア状態</button>
           <button id="debug-full-resources" class="ghost-button" type="button">資源MAX</button>

@@ -124,6 +124,20 @@ test("visual presentation stays text-only for branch updates", () => {
   assert.doesNotMatch(css, /url\(/);
 });
 
+
+test("UI uses a dual-screen pocket-console presentation", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(html, /data-screen="Top Screen"/);
+  assert.match(html, /data-screen="Command Screen"/);
+  assert.match(html, /data-screen="Message Log"/);
+  assert.match(css, /grid-template-areas:\s*"top top"\s*"commands log"/);
+  assert.match(css, /\.shell::before/);
+  assert.match(css, /\.hero-card::after/);
+  assert.match(css, /A:決定\s+B:戻る\s+十字:移動/);
+  assert.match(css, /repeating-linear-gradient\(0deg/);
+});
+
 test("debug mode exposes chapter-complete and ending shortcuts only behind a query flag", () => {
   assert.match(html, /id="debug-panel"/);
   assert.match(mainSource, /new URLSearchParams\(window\.location\.search\)\.has\("debug"\)/);
