@@ -79,6 +79,15 @@ const DECOR_LABELS = {
 
 const DEBUG_ENABLED = new URLSearchParams(window.location.search).has("debug");
 const VIEWPORT_SIZE = 5;
+const BLOCKING_DECOR = new Set(["b", "c", "k", "l", "m", "p", "s", "w"]);
+const AREA_RETURN_POINTS = {
+  school: { x: 7, y: 7 },
+  market: { x: 10, y: 7 },
+  hospital: { x: 2, y: 11 },
+  park: { x: 11, y: 11 },
+  vacant: { x: 8, y: 7 },
+};
+const STEPS_PER_TIME_SEGMENT = 14;
 
 const state = createInitialState();
 
@@ -105,17 +114,11 @@ const ui = {
   liveMessage: document.querySelector("#live-message"),
   returnButton: document.querySelector("#return-button"),
   restButton: document.querySelector("#rest-button"),
-  guardButton: document.querySelector("#guard-button"),
-  chapterButton: document.querySelector("#chapter-button"),
-  scoutButton: document.querySelector("#scout-button"),
-  tacticButton: document.querySelector("#tactic-button"),
   rationButton: document.querySelector("#ration-button"),
   medicineButton: document.querySelector("#medicine-button"),
-  barricadeButton: document.querySelector("#barricade-button"),
   restartButton: document.querySelector("#restart-button"),
   saveButton: document.querySelector("#save-button"),
   loadButton: document.querySelector("#load-button"),
-  signalButton: document.querySelector("#send-signal-button"),
   debugPanel: document.querySelector("#debug-panel"),
   debugCompleteChapter: document.querySelector("#debug-complete-chapter"),
   debugFullResources: document.querySelector("#debug-full-resources"),
@@ -145,17 +148,24 @@ function pressureLog(prefix, result) {
 
 function resetBaseMap() {
   const hubState = cloneAreaState(HUB_AREA);
-  state.player = hubState.player;
+  state.player = { ...(state.hubReturnPoint ?? HUB_AREA.start) };
   state.terrain = hubState.terrain;
   state.layers = hubState.layers;
-  state.entities = hubState.entities;
+  state.entities = hubState.entities.filter((entity) => !entity.requiresParts || state.parts >= entity.requiresParts);
 }
 
 function enterArea(areaId) {
   if (state.gameOver) return;
   const area = AREAS[areaId];
+  if (areaId === "vacant" && state.parts < REQUIRED_PARTS) {
+    addLog(`空き地はまだ瓦礫で塞がっている。通信機の部品があと${REQUIRED_PARTS - state.parts}個必要だ。`);
+    render();
+    return;
+  }
   state.currentAreaId = areaId;
-  const areaState = cloneAreaState(area, state.rescued, getAreaDanger(state, areaId), state.completedEvents, state.collectedItems);
+  state.currentFloor = 0;
+  state.stepsInPeriod = 0;
+  const areaState = cloneAreaState(area, state.rescued, getAreaDanger(state, areaId), state.completedEvents, state.collectedItems, state.currentFloor);
   state.terrain = areaState.terrain;
   state.layers = areaState.layers;
   state.entities = areaState.entities;
@@ -173,8 +183,12 @@ function returnToBase() {
   if (!state.currentAreaId) return;
   closeModal();
   const area = AREAS[state.currentAreaId];
+  const returnPoint = AREA_RETURN_POINTS[state.currentAreaId] ?? HUB_AREA.start;
   const dangerChange = increaseAreaDanger(state, state.currentAreaId);
+  state.hubReturnPoint = { ...returnPoint };
   state.currentAreaId = null;
+  state.currentFloor = 0;
+  state.stepsInPeriod = 0;
   resetBaseMap();
   advanceTime(area.timeCost);
   pressureLog("探索で足跡を残した。", increaseFlagPressure(state, area.timeCost * 4));
@@ -241,6 +255,7 @@ function movePlayer(dx, dy) {
     return;
   }
   state.player = next;
+  countExplorationStep();
   resolveTile();
   if (!ui.modal.classList.contains("hidden") || state.gameOver) {
     render();
@@ -252,7 +267,19 @@ function movePlayer(dx, dy) {
 }
 
 function isWall(x, y) {
-  return isWallAt(state.terrain, x, y);
+  if (isWallAt(state.terrain, x, y)) return true;
+  const blockingEntity = state.entities.some((entity) => entity.x === x && entity.y === y && ["area", "stairs", "item", "event", "ally", "enemy"].includes(entity.type));
+  const decor = state.layers?.decor?.[y]?.[x] ?? " ";
+  return !blockingEntity && BLOCKING_DECOR.has(decor);
+}
+
+function countExplorationStep() {
+  state.stepsInPeriod = (state.stepsInPeriod ?? 0) + 1;
+  if (state.stepsInPeriod < STEPS_PER_TIME_SEGMENT) return;
+  state.stepsInPeriod = 0;
+  advanceTime(1);
+  pressureLog("長く歩き回った足音が響いた。", increaseFlagPressure(state, 3));
+  addLog("移動に時間を使った。日付と食料切れに注意しよう。");
 }
 
 function resolveTile() {
@@ -271,20 +298,27 @@ function resolveTile() {
 
   if (entity.type === "area") {
     const area = AREAS[entity.areaId];
-    showChoice(`${area.name}へ向かう`, `${area.description} この探索先へ移動しますか？`, [
-      { label: "向かう", primary: true, action: () => { closeModal(); enterArea(entity.areaId); } },
-      { label: "町内に残る", action: closeModal },
+    const locked = entity.requiresParts && state.parts < entity.requiresParts;
+    showChoice(`${area.name}へ向かう`, locked ? `瓦礫と旗で塞がっている。部品を${entity.requiresParts}個集めると空き地から通信塔跡へ入れます。` : `${area.description} この探索先へ移動しますか？`, [
+      locked
+        ? { label: "閉じる", primary: true, action: closeModal }
+        : { label: "向かう", primary: true, action: () => { closeModal(); enterArea(entity.areaId); } },
+      ...(locked ? [] : [{ label: "町内に残る", action: closeModal }]),
     ]);
+  } else if (entity.type === "stairs") {
+    switchFloor(entity.targetFloor);
   } else if (entity.type === "item") {
     state.entities.splice(entityIndex, 1);
     collectItem(state, state.currentAreaId, entity);
     recordAreaNote(state, state.currentAreaId, "items");
     gainLoot(entity.loot);
   } else if (entity.type === "event") {
-    state.entities.splice(entityIndex, 1);
-    completeEvent(state, entity.event);
-    recordAreaNote(state, state.currentAreaId, "events");
-    runEvent(entity.event);
+    if (entity.event !== "final_signal") {
+      state.entities.splice(entityIndex, 1);
+      completeEvent(state, entity.event);
+      recordAreaNote(state, state.currentAreaId, "events");
+    }
+    runEvent(entity.event, entityIndex);
   } else if (entity.type === "ally") {
     state.entities.splice(entityIndex, 1);
     recordAreaNote(state, state.currentAreaId, "allies");
@@ -294,13 +328,34 @@ function resolveTile() {
   }
 }
 
+function switchFloor(targetFloor) {
+  if (!state.currentAreaId) return;
+  const area = AREAS[state.currentAreaId];
+  const areaState = cloneAreaState(area, state.rescued, getAreaDanger(state, state.currentAreaId), state.completedEvents, state.collectedItems, targetFloor);
+  state.currentFloor = targetFloor;
+  state.terrain = areaState.terrain;
+  state.layers = areaState.layers;
+  state.entities = areaState.entities;
+  state.player = areaState.player;
+  addLog(`${area.name}の${targetFloor + 1}層目へ移動した。階段で戻ることもできる。`);
+  render();
+}
+
 function gainLoot(loot) {
   const result = applyLoot(state, loot);
   addLog(`物資を見つけた。${formatGain(result)}。`);
 }
 
-function runEvent(eventId) {
+function runEvent(eventId, entityIndex = -1) {
   const events = {
+    final_signal: {
+      title: "通信塔の制御盤",
+      body: "集めた部品がはまり、空き地の古い通信塔が一瞬だけ息を吹き返す。ここで第一章を終えますか？",
+      choices: [
+        { label: "救助信号を送る", primary: true, action: () => { if (entityIndex >= 0) state.entities.splice(entityIndex, 1); completeEvent(state, "final_signal"); recordAreaNote(state, state.currentAreaId, "events"); state.completedChapters.add(1); state.gameOver = true; addLog("通信塔跡を突破し、救助信号を送った。第一章クリア。"); showChoice("第一章クリア", "ボタンではなく、町内に出現した空き地のラストダンジョンを突破して救助信号を送った。", [{ label: "最初から", primary: true, action: restart }]); render(); } },
+        { label: "まだ探索する", action: () => { closeModal(); render(); } },
+      ],
+    },
     locker: {
       title: "ロッカーの物音",
       body: "内側から小さな声がする。開ければ食料を得られるが、金属音で旗人間が寄ってくる。見捨てれば静かだが士気は落ちる。",
@@ -374,7 +429,7 @@ function chaseSteps(entity) {
 }
 
 function isBlockedForEnemy(x, y) {
-  return isWall(x, y) || state.terrain[y][x] === "X" || state.entities.some((entity) => entity.x === x && entity.y === y && (entity.type === "enemy" || entity.type === "area"));
+  return isWall(x, y) || state.terrain[y]?.[x] === "X" || state.entities.some((entity) => entity.x === x && entity.y === y && (entity.type === "enemy" || entity.type === "area" || entity.type === "stairs"));
 }
 
 function checkEnemyContact() {
@@ -384,73 +439,99 @@ function checkEnemyContact() {
 
 function startBattle(entity, entityIndex) {
   const preview = calculateBattlePreview(state, state.currentAreaId, entity.enemy);
-  const { enemy, escapeChance } = preview;
+  const intent = pickEnemyIntent(preview.enemy);
 
   showChoice(
-    enemy.name,
-    createBattlePreviewBody(preview),
+    `${preview.enemy.name} / ${intent.name}`,
+    createBattlePreviewBody(preview, intent),
     [
-      {
-        label: "戦う",
-        primary: true,
-        action: () => resolveFight(enemy, preview, entityIndex),
-      },
-      {
-        label: "逃げる",
-        action: () => {
-          const success = Math.random() < escapeChance;
-          if (success) {
-            state.morale = Math.max(0, state.morale - 4);
-            addLog(`${enemy.name}から逃げ切った。士気が少し下がった。`);
-            showChoice("逃走成功", createBattleResultBody(enemy, ["全員で距離を取った。", `${enemy.name}の追撃を振り切った。`, "士気 -4。"]), [
-              { label: "探索へ戻る", primary: true, action: () => { closeModal(); render(); } },
-            ]);
-          } else {
-            damageParty(preview.enemyDamage);
-            state.morale = Math.max(0, state.morale - 8);
-            addLog(`逃走に失敗した。追撃を受けて全員で${preview.enemyDamage}ダメージを受けた。`);
-            showChoice("逃走失敗", createBattleResultBody(enemy, ["足音が廊下に響く。", `${enemy.name}の追撃を受けた。`, `全員に ${preview.enemyDamage} ダメージ / 士気 -8。`]), [
-              { label: "探索へ戻る", primary: true, action: () => { closeModal(); checkPartyDefeat(); render(); } },
-            ]);
-          }
-        },
-      },
+      { label: "突く: 詠唱や突進を止める", primary: intent.id === "howl", action: () => resolveBattleMove("strike", preview, intent, entityIndex) },
+      { label: "守る: 突進を受け流す", primary: intent.id === "assault", action: () => resolveBattleMove("guard", preview, intent, entityIndex) },
+      { label: "誘導: 隙を作り旗圧を下げる", primary: intent.id === "guard", action: () => resolveBattleMove("lure", preview, intent, entityIndex) },
+      { label: `逃げる: 成功率${Math.round(preview.escapeChance * 100)}%`, action: () => resolveBattleMove("escape", preview, intent, entityIndex) },
     ],
   );
 }
 
-function resolveFight(enemy, preview, entityIndex) {
-  const lines = [
-    `作戦「${preview.tactic.name}」で前に出る。`,
-    `味方の総攻撃！ ${preview.partyAttack} ダメージ。`,
+function pickEnemyIntent(enemy) {
+  const intents = [
+    { id: "assault", name: "突進の構え", clue: `${enemy.name}は旗を前に倒し、一直線に踏み込もうとしている。`, best: "守る" },
+    { id: "guard", name: "防御の構え", clue: `${enemy.name}は通路を塞ぎ、こちらの空振りを待っている。`, best: "誘導" },
+    { id: "howl", name: "呼び声の構え", clue: `${enemy.name}の旗が震え、仲間を呼ぶ直前だ。`, best: "突く" },
   ];
+  return randomPick(intents);
+}
 
-  if (preview.canDefeatSafely) {
-    state.entities.splice(entityIndex, 1);
-    recordAreaNote(state, state.currentAreaId, "enemies");
-    state.morale = Math.min(100, state.morale + 3);
-    pressureLog("短期決着で周囲の旗が少し静まった。", reduceFlagPressure(state, 2));
-    lines.push(`${enemy.name}を押し切った。`, "士気 +3。");
-    addLog(`${enemy.name}を倒した。士気が少し上がった。`);
-  } else {
-    damageParty(preview.totalEnemyDamage);
-    infectParty(preview.infectionGain);
-    pressureLog("乱戦の音で旗人間が近づいた。", increaseFlagPressure(state, 5));
-    state.entities.splice(entityIndex, 1);
-    recordAreaNote(state, state.currentAreaId, "enemies");
-    lines.push(`${enemy.name}の反撃！ 全員で ${preview.totalEnemyDamage} ダメージを分け合った。`, `旗汚染 +${preview.infectionGain}。`, `${enemy.name}を辛くも倒した。`);
-    addLog(`${enemy.name}を辛くも倒した。全員が${preview.totalEnemyDamage}ダメージを分け合い、旗汚染が${preview.infectionGain}進んだ。`);
+function resolveBattleMove(move, preview, intent, entityIndex) {
+  const enemy = preview.enemy;
+  if (move === "escape") {
+    const success = Math.random() < preview.escapeChance;
+    if (success) {
+      state.morale = Math.max(0, state.morale - 4);
+      addLog(`${enemy.name}から逃げ切った。士気が少し下がった。`);
+      showChoice("逃走成功", createBattleResultBody(enemy, ["全員で距離を取った。", `${enemy.name}の追撃を振り切った。`, "士気 -4。"]), [
+        { label: "探索へ戻る", primary: true, action: () => { closeModal(); render(); } },
+      ]);
+      return;
+    }
+    damageParty(preview.enemyDamage);
+    state.morale = Math.max(0, state.morale - 8);
+    addLog(`逃走に失敗した。追撃を受けて全員で${preview.enemyDamage}ダメージを受けた。`);
+    showChoice("逃走失敗", createBattleResultBody(enemy, ["足音が廊下に響く。", `${enemy.name}の追撃を受けた。`, `全員に ${preview.enemyDamage} ダメージ / 士気 -8。`]), [
+      { label: "探索へ戻る", primary: true, action: () => { closeModal(); checkPartyDefeat(); render(); } },
+    ]);
+    return;
   }
 
-  showChoice("戦闘結果", createBattleResultBody(enemy, lines), [
+  const matchup = `${move}:${intent.id}`;
+  const goodMatch = ["strike:howl", "guard:assault", "lure:guard"].includes(matchup);
+  const badMatch = ["strike:guard", "guard:howl", "lure:assault"].includes(matchup);
+  const lines = [intent.clue];
+  let damage = preview.totalEnemyDamage;
+  let infection = preview.infectionGain;
+  let moraleGain = 2;
+  let result = "counter";
+
+  if (goodMatch) {
+    damage = Math.max(0, Math.floor(preview.enemyDamage / 2));
+    infection = Math.max(0, preview.infectionGain - 3);
+    moraleGain = 5;
+    result = "clean";
+    pressureLog("読み勝って旗人間の呼吸を崩した。", reduceFlagPressure(state, move === "lure" ? 8 : 4));
+    lines.push(`正解行動「${battleMoveName(move)}」。${enemy.name}の弱点を突いた。`);
+  } else if (badMatch) {
+    damage = preview.totalEnemyDamage + 4;
+    infection = preview.infectionGain + 2;
+    moraleGain = -4;
+    pressureLog("読み違えた物音で旗人間が近づいた。", increaseFlagPressure(state, 8));
+    lines.push(`読み違えた。${enemy.name}に主導権を握られた。`);
+  } else {
+    pressureLog("短い乱戦で周囲がざわついた。", increaseFlagPressure(state, 3));
+    lines.push(`行動「${battleMoveName(move)}」で押し合いになった。`);
+  }
+
+  if (damage > 0) damageParty(damage);
+  if (infection > 0) infectParty(infection);
+  state.morale = Math.max(0, Math.min(100, state.morale + moraleGain));
+  state.entities.splice(entityIndex, 1);
+  recordAreaNote(state, state.currentAreaId, "enemies");
+  lines.push(`${enemy.name}を突破した。`, `被害 ${damage} / 汚染 +${infection} / 士気 ${moraleGain >= 0 ? "+" : ""}${moraleGain}。`);
+  addLog(`${enemy.name}を${goodMatch ? "読み勝って" : badMatch ? "苦戦しながら" : "突破して"}倒した。被害${damage}、汚染+${infection}。`);
+
+  showChoice("戦闘結果", createBattleResultBody(enemy, lines, result), [
     { label: "探索へ戻る", primary: true, action: () => { closeModal(); checkPartyDefeat(); render(); } },
   ]);
 }
 
-function createBattlePreviewBody({ enemy, tactic, partyAttack, totalEnemyDamage, infectionGain, escapeChance }) {
+function battleMoveName(move) {
+  return { strike: "突く", guard: "守る", lure: "誘導" }[move] ?? move;
+}
+
+function createBattlePreviewBody({ enemy, partyAttack, totalEnemyDamage, infectionGain, escapeChance }, intent) {
   return createBattleBody(enemy, [
     `${enemy.name}が立ちはだかった。`,
-    `作戦:${tactic.name} / 推定攻撃:${partyAttack} / 被害:${totalEnemyDamage} / 汚染:+${infectionGain}`,
+    intent.clue,
+    `正解候補:${intent.best} / 味方攻撃:${partyAttack} / 失敗時被害:${totalEnemyDamage} / 汚染:+${infectionGain}`,
     `逃走成功率 約${Math.round(escapeChance * 100)}%。旗圧:${getFlagPressureTier(state).name}。`,
   ], {
     mode: "preview",
@@ -460,8 +541,8 @@ function createBattlePreviewBody({ enemy, tactic, partyAttack, totalEnemyDamage,
   });
 }
 
-function createBattleResultBody(enemy, lines) {
-  const wonCleanly = lines.some((line) => line.includes("押し切った"));
+function createBattleResultBody(enemy, lines, forcedResult = null) {
+  const wonCleanly = forcedResult === "clean" || lines.some((line) => line.includes("押し切った") || line.includes("弱点を突いた"));
   const escaped = lines.some((line) => line.includes("逃げ") || line.includes("振り切った"));
   return createBattleBody(enemy, lines, {
     mode: escaped ? "escape" : "result",
@@ -494,8 +575,8 @@ function createBattleBody(enemy, lines, options = {}) {
   const summary = document.createElement("p");
   summary.className = "battle-summary";
   summary.textContent = options.mode === "preview"
-    ? `接触戦闘: 味方が踏み込み、敵の反撃前に削り切れるかが勝負。想定与ダメージ ${options.partyDamage} / 反撃 ${options.enemyDamage}。`
-    : "味方と敵がぶつかり合い、攻撃・反撃・決着を順に処理しました。";
+    ? `読み合い戦闘: 敵の構えに合わせて「突く・守る・誘導」を選ぶ。想定与ダメージ ${options.partyDamage} / 失敗時反撃 ${options.enemyDamage}。`
+    : "敵の構えと選んだ行動の相性で、被害・汚染・旗圧が変化しました。";
   const list = document.createElement("ol");
   list.className = "battle-lines";
   lines.forEach((line) => {
@@ -824,14 +905,8 @@ function render() {
   renderLogs();
   ui.returnButton.disabled = !state.currentAreaId || state.gameOver;
   ui.restButton.disabled = !!state.currentAreaId || state.gameOver;
-  ui.guardButton.disabled = !!state.currentAreaId || state.gameOver;
-  ui.chapterButton.disabled = !!state.currentAreaId || state.gameOver || !canCompleteChapter(state);
-  ui.scoutButton.disabled = !!state.currentAreaId || state.gameOver;
-  ui.tacticButton.disabled = !!state.currentAreaId || state.gameOver;
   ui.rationButton.disabled = !!state.currentAreaId || state.gameOver;
   ui.medicineButton.disabled = !!state.currentAreaId || state.gameOver || state.medicine <= 0;
-  ui.barricadeButton.disabled = !!state.currentAreaId || state.gameOver || state.parts <= 0;
-  ui.signalButton.disabled = !!state.currentAreaId || state.gameOver;
   ui.saveButton.disabled = state.gameOver;
   ui.loadButton.disabled = !hasSavedGame();
 }
@@ -870,7 +945,8 @@ function renderMap() {
   const isBase = !state.currentAreaId;
   ui.mapPanel.classList.toggle("base-mode", isBase);
   const area = isBase ? HUB_AREA : AREAS[state.currentAreaId];
-  ui.areaName.textContent = isBase ? "学校前の町内" : area.name;
+  const floorSuffix = !isBase && state.currentFloor ? ` ${state.currentFloor + 1}層` : "";
+  ui.areaName.textContent = isBase ? "学校前の町内" : `${area.name}${floorSuffix}`;
   ui.areaDescription.textContent = isBase
     ? "拠点前の14×14町内マップです。目的地の看板に乗ると探索先へ向かえます。旗人間にも注意。"
     : `${area.description} 主人公の周囲25マスだけが見える探索画面です。`;
@@ -891,6 +967,7 @@ function renderMap() {
       tile.dataset.decor = decor.trim() ? decor : "none";
       tile.setAttribute("aria-label", tileLabel(terrain, decor, entity, isPlayer));
       if (terrain === "#") tile.classList.add("wall");
+      if (BLOCKING_DECOR.has(decor)) tile.classList.add("blocked-decor");
       if (terrain === "X") tile.classList.add("exit");
       if (decor.trim()) {
         const decorLayer = document.createElement("span");
@@ -907,14 +984,15 @@ function renderMap() {
       if (entity) {
         tile.classList.add(entity.type);
         tile.append(createEntityLayer(entity));
-        if (entity.type === "area") {
+        if (entity.type === "area" || entity.type === "stairs") {
           tile.tabIndex = 0;
           tile.role = "button";
-          tile.addEventListener("click", () => enterArea(entity.areaId));
+          tile.addEventListener("click", () => entity.type === "area" ? enterArea(entity.areaId) : switchFloor(entity.targetFloor));
           tile.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              enterArea(entity.areaId);
+              if (entity.type === "area") enterArea(entity.areaId);
+              else switchFloor(entity.targetFloor);
             }
           });
         }
@@ -960,12 +1038,14 @@ function tileLabel(terrain, decor, entity, isPlayer) {
   if (entity) return entityLabel(entity);
   if (terrain === "#") return "壁";
   if (terrain === "X") return "出口";
+  if (BLOCKING_DECOR.has(decor)) return `${DECOR_LABELS[decor] ?? "障害物"}（通行不可）`;
   if (decor.trim()) return DECOR_LABELS[decor] ?? "地形装飾";
   return "床";
 }
 
 function entityLabel(entity) {
   if (entity.type === "area") return entity.label ?? AREAS[entity.areaId]?.name?.[0] ?? "行";
+  if (entity.type === "stairs") return entity.label ?? "階";
   if (entity.type === "enemy") return ENEMIES[entity.enemy].icon;
   if (entity.type === "item") return "物";
   if (entity.type === "event") return "?";
@@ -1055,17 +1135,11 @@ function formatGain(result) {
 
 ui.returnButton.addEventListener("click", returnToBase);
 ui.restButton.addEventListener("click", rest);
-ui.guardButton.addEventListener("click", guardDuty);
-ui.chapterButton.addEventListener("click", finishChapter);
-ui.scoutButton.addEventListener("click", scoutAreas);
-ui.tacticButton.addEventListener("click", openTacticMenu);
 ui.rationButton.addEventListener("click", openRationMenu);
 ui.medicineButton.addEventListener("click", openMedicineMenu);
-ui.barricadeButton.addEventListener("click", openBarricadeMenu);
 ui.restartButton.addEventListener("click", restart);
 ui.saveButton.addEventListener("click", saveGame);
 ui.loadButton.addEventListener("click", loadGame);
-ui.signalButton.addEventListener("click", sendSignal);
 if (DEBUG_ENABLED) {
   ui.debugPanel.classList.remove("hidden");
   ui.debugCompleteChapter.addEventListener("click", debugCompleteChapterOne);

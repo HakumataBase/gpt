@@ -143,6 +143,54 @@ export const AREAS = {
       { type: "ally", x: 6, y: 7, ally: "akari" },
       { type: "event", x: 2, y: 10, event: "broadcast" },
       { type: "item", x: 10, y: 10, loot: "parts" },
+      { type: "stairs", x: 12, y: 12, targetFloor: 1, label: "2F" },
+    ],
+    floors: [
+      null,
+      {
+        nameSuffix: "2F",
+        start: { x: 1, y: 12 },
+        terrain: [
+          "##############",
+          "#..........X.#",
+          "#.####.#####.#",
+          "#....#.....#.#",
+          "####.#.###.#.#",
+          "#....#.#...#.#",
+          "#.####.#.###.#",
+          "#......#.....#",
+          "#.##########.#",
+          "#....#.......#",
+          "####.#.#####.#",
+          "#......#.....#",
+          "#............#",
+          "##############",
+        ],
+        layers: {
+          decor: [
+            "              ",
+            "        w r   ",
+            "  lll   lll   ",
+            "   b      b   ",
+            "      d       ",
+            "  c       w   ",
+            "      lll     ",
+            "   d      b   ",
+            "   llllllll   ",
+            " b      w     ",
+            "      d  lll  ",
+            "    f         ",
+            " r          d ",
+            "              ",
+          ],
+        },
+        entities: [
+          { type: "stairs", x: 1, y: 12, targetFloor: 0, label: "1F" },
+          { type: "enemy", x: 7, y: 3, enemy: "teacher" },
+          { type: "item", x: 10, y: 5, loot: "parts" },
+          { type: "event", x: 3, y: 11, event: "broadcast" },
+        ],
+      },
     ],
   },
   market: {
@@ -193,6 +241,54 @@ export const AREAS = {
       { type: "enemy", x: 4, y: 7, enemy: "walker" },
       { type: "item", x: 8, y: 8, loot: "weapon" },
       { type: "event", x: 10, y: 10, event: "basket" },
+      { type: "stairs", x: 12, y: 12, targetFloor: 1, label: "裏" },
+    ],
+    floors: [
+      null,
+      {
+        nameSuffix: "裏路地",
+        start: { x: 1, y: 12 },
+        terrain: [
+          "##############",
+          "#..........X.#",
+          "#.##########.#",
+          "#....#.......#",
+          "####.#.#####.#",
+          "#....#.#.....#",
+          "#.####.#.###.#",
+          "#......#.#...#",
+          "#.######.#.#.#",
+          "#....#.....#.#",
+          "####.#.#####.#",
+          "#......#.....#",
+          "#............#",
+          "##############",
+        ],
+        layers: {
+          decor: [
+            "              ",
+            "    k   r     ",
+            "  ssssssssss  ",
+            " c   k     c  ",
+            "     r        ",
+            "  k    s      ",
+            "  wwww   k    ",
+            "     r        ",
+            "  ssssss s s  ",
+            "  c      k    ",
+            "     r  ssss  ",
+            "    k       c ",
+            " r          d ",
+            "              ",
+          ],
+        },
+        entities: [
+          { type: "stairs", x: 1, y: 12, targetFloor: 0, label: "表" },
+          { type: "enemy", x: 5, y: 5, enemy: "runner" },
+          { type: "item", x: 10, y: 7, loot: "food" },
+          { type: "item", x: 11, y: 11, loot: "parts" },
+        ],
+      },
     ],
   },
   hospital: {
@@ -292,6 +388,114 @@ export const AREAS = {
       { type: "event", x: 9, y: 5, event: "flag" },
       { type: "item", x: 6, y: 8, loot: "parts" },
       { type: "enemy", x: 10, y: 9, enemy: "walker" },
+      { type: "stairs", x: 12, y: 12, targetFloor: 1, label: "丘" },
+    ],
+    floors: [
+      null,
+      {
+        nameSuffix: "丘の上",
+        start: { x: 1, y: 12 },
+        terrain: [
+          "##############",
+          "#..........X.#",
+          "#.####.#####.#",
+          "#....#.......#",
+          "####.#.#####.#",
+          "#....#.#.....#",
+          "#.####.#.###.#",
+          "#......#.#...#",
+          "#.######.#.#.#",
+          "#....#.....#.#",
+          "####.#.#####.#",
+          "#......#.....#",
+          "#............#",
+          "##############",
+        ],
+        layers: { decor: [
+          "              ", "    t   r     ", "  gggggggggg  ", " t   g     t  ", "     r        ", "  g    t      ", "  tttt   g    ", "     r        ", "  gggggg g g  ", "  t      g    ", "     r  gggg  ", "    f       t ", " r          d ", "              ",
+        ] },
+        entities: [
+          { type: "stairs", x: 1, y: 12, targetFloor: 0, label: "下" },
+          { type: "enemy", x: 8, y: 7, enemy: "runner" },
+          { type: "item", x: 10, y: 10, loot: "parts" },
+        ],
+      },
+    ],
+  },
+  vacant: {
+    name: "空き地・通信塔跡",
+    danger: 4,
+    timeCost: 2,
+    description: "部品を揃えた後に開く最終迷路。屋上の代わりに通信塔跡を突破して第一章を終える。",
+    background: "park",
+    terrain: [
+      "##############",
+      "#............#",
+      "#.##########.#",
+      "#.#........#.#",
+      "#.#.######.#.#",
+      "#.#.#....#.#.#",
+      "#.#.#.##.#.#.#",
+      "#...#....#...#",
+      "###.######.###",
+      "#...#....#...#",
+      "#.###.##.###.#",
+      "#............#",
+      "#............#",
+      "##############",
+    ],
+    layers: { decor: [
+      "              ",
+      "  r     f     ",
+      "  ssssssssss  ",
+      "  s      r s  ",
+      "  s ssss s s  ",
+      "  s s  p s s  ",
+      "  s s ss s s  ",
+      " r  s    s  r ",
+      " sss ssss sss ",
+      " r  s  f s  r ",
+      "  sss ss sss  ",
+      "     r        ",
+      "   d          ",
+      "              ",
+    ] },
+    start: { x: 1, y: 12 },
+    entities: [
+      { type: "enemy", x: 3, y: 7, enemy: "brute" },
+      { type: "enemy", x: 10, y: 9, enemy: "teacher" },
+      { type: "stairs", x: 12, y: 1, targetFloor: 1, label: "塔" },
+    ],
+    floors: [
+      null,
+      {
+        nameSuffix: "通信塔",
+        start: { x: 12, y: 12 },
+        terrain: [
+          "##############",
+          "#..........X.#",
+          "#.##########.#",
+          "#.#........#.#",
+          "#.#.######.#.#",
+          "#.#.#....#.#.#",
+          "#.#.#.##.#.#.#",
+          "#...#....#...#",
+          "###.######.###",
+          "#...#....#...#",
+          "#.###.##.###.#",
+          "#............#",
+          "#............#",
+          "##############",
+        ],
+        layers: { decor: [
+          "              ", "        r     ", "  wwwwwwwwww  ", "  w      r w  ", "  w wwww w w  ", "  w w  p w w  ", "  w w ww w w  ", " r  w    w  r ", " www wwww www ", " r  w  f w  r ", "  www ww www  ", "     r        ", "          d   ", "              ",
+        ] },
+        entities: [
+          { type: "enemy", x: 6, y: 5, enemy: "brute" },
+          { type: "event", x: 11, y: 1, event: "final_signal" },
+          { type: "stairs", x: 12, y: 12, targetFloor: 0, label: "地" },
+        ],
+      },
     ],
   },
 };
@@ -337,10 +541,11 @@ export const HUB_AREA = {
   },
   start: { x: 6, y: 7 },
   entities: [
-    { type: "area", x: 6, y: 1, areaId: "school", label: "校" },
-    { type: "area", x: 12, y: 5, areaId: "market", label: "商" },
-    { type: "area", x: 2, y: 12, areaId: "hospital", label: "病" },
+    { type: "area", x: 7, y: 7, areaId: "school", label: "校" },
+    { type: "area", x: 10, y: 7, areaId: "market", label: "商" },
+    { type: "area", x: 2, y: 11, areaId: "hospital", label: "病" },
     { type: "area", x: 11, y: 11, areaId: "park", label: "公" },
+    { type: "area", x: 8, y: 7, areaId: "vacant", label: "空", requiresParts: REQUIRED_PARTS },
     { type: "enemy", x: 3, y: 5, enemy: "walker", hub: true },
     { type: "enemy", x: 10, y: 8, enemy: "runner", hub: true },
   ],
@@ -400,12 +605,15 @@ export function createInitialState() {
     tactic: "balanced",
     rationPolicy: "normal",
     watchLevel: 0,
+    currentFloor: 0,
+    stepsInPeriod: 0,
+    hubReturnPoint: { ...HUB_AREA.start },
     areaDanger: createInitialAreaDanger(),
     areaNotes: createInitialAreaNotes(),
     player: { ...HUB_AREA.start },
     terrain: HUB_AREA.terrain.map((row) => row.split("")),
     layers: cloneAreaLayers(HUB_AREA),
-    entities: HUB_AREA.entities.map((entity) => ({ ...entity })),
+    entities: HUB_AREA.entities.filter((entity) => !entity.requiresParts).map((entity) => ({ ...entity })),
     party: [
       { ...CHARACTERS.hero, hp: CHARACTERS.hero.maxHp },
       { ...CHARACTERS.minato, hp: CHARACTERS.minato.maxHp },
@@ -441,11 +649,12 @@ export function reduceFlagPressure(state, amount) {
   return increaseFlagPressure(state, -amount);
 }
 
-export function cloneAreaState(area, rescued = new Set(), currentDanger = area.danger, completedEvents = new Set(), collectedItems = new Set()) {
-  const terrain = area.terrain.map((row) => row.split(""));
-  const layers = cloneAreaLayers(area);
+export function cloneAreaState(area, rescued = new Set(), currentDanger = area.danger, completedEvents = new Set(), collectedItems = new Set(), floor = 0) {
+  const template = getAreaFloorTemplate(area, floor);
+  const terrain = template.terrain.map((row) => row.split(""));
+  const layers = cloneAreaLayers(template);
   const areaId = getAreaId(area);
-  const entities = area.entities
+  const entities = template.entities
     .filter((entity) => entity.type !== "ally" || !rescued.has(entity.ally))
     .filter((entity) => entity.type !== "event" || !completedEvents.has(entity.event))
     .filter((entity) => entity.type !== "item" || !collectedItems.has(getEntityCollectionKey(areaId, entity)))
@@ -459,8 +668,14 @@ export function cloneAreaState(area, rescued = new Set(), currentDanger = area.d
     terrain,
     layers,
     entities,
-    player: { ...area.start },
+    player: { ...(template.start ?? area.start) },
   };
+}
+
+export function getAreaFloorTemplate(area, floor = 0) {
+  const floorTemplate = area.floors?.[floor];
+  if (!floorTemplate) return area;
+  return { ...area, ...floorTemplate, entities: floorTemplate.entities ?? area.entities };
 }
 
 function cloneAreaLayers(area) {
@@ -765,8 +980,8 @@ export function getObjectives(state) {
   return [
     {
       id: "repair_signal",
-      title: "通信機を直す",
-      description: "部品を集めて屋上から救助信号を送れる状態にする。",
+      title: "空き地への道を開く",
+      description: "部品を集めて町内に空き地入口を出し、通信塔跡へ入れる状態にする。",
       current: Math.min(state.parts, REQUIRED_PARTS),
       target: REQUIRED_PARTS,
       unit: "個",
@@ -793,7 +1008,7 @@ export function getObjectives(state) {
     {
       id: "control_pressure",
       title: "旗人間の包囲を抑える",
-      description: "見張り・休息・イベント選択で旗人間の接近を抑え、危険な探索判断を避ける。",
+      description: "休息・イベント選択・読み合い戦闘で旗人間の接近を抑え、危険な探索判断を避ける。",
       current: Math.max(0, MAX_FLAG_PRESSURE - clamp(toFiniteNumber(state.flagPressure, 0), 0, MAX_FLAG_PRESSURE)),
       target: MAX_FLAG_PRESSURE,
       unit: "圧",
@@ -802,7 +1017,7 @@ export function getObjectives(state) {
     {
       id: "control_danger",
       title: "夜襲を抑える",
-      description: "危険度が高い探索先を休息やバリケードで抑え、拠点への夜襲を防ぐ。",
+      description: "危険度が高い探索先を放置せず、休息と探索判断で拠点への夜襲を防ぐ。",
       current: safeAreaCount,
       target: totalAreaCount,
       unit: "箇所",
@@ -1070,14 +1285,14 @@ export function getEnding(state) {
     return {
       id: "truth_route",
       title: "救助信号：調査継続",
-      message: "屋上から救助信号を送った。救助の光が見えたが、集めた痕跡はこの街だけの事件ではないことを示している。君たちは脱出後、真相を追う準備を始めた。",
+      message: "通信塔跡から救助信号を送った。救助の光が見えたが、集めた痕跡はこの街だけの事件ではないことを示している。君たちは脱出後、真相を追う準備を始めた。",
     };
   }
 
   return {
     id: "escape",
     title: "救助信号",
-    message: "屋上から救助信号を送った。夜明け前、遠くにヘリの光が見えた。ひとまず君たちは生き延びた。",
+    message: "通信塔跡から救助信号を送った。夜明け前、遠くにヘリの光が見えた。ひとまず君たちは生き延びた。",
   };
 }
 
@@ -1097,6 +1312,9 @@ export function serializeGameState(state) {
       chapter: state.chapter,
       completedChapters: [...state.completedChapters],
       currentAreaId: state.currentAreaId,
+      currentFloor: state.currentFloor ?? 0,
+      stepsInPeriod: state.stepsInPeriod ?? 0,
+      hubReturnPoint: { ...(state.hubReturnPoint ?? HUB_AREA.start) },
       tactic: getTactic(state).id,
       rationPolicy: getRationPolicy(state).id,
       watchLevel: state.watchLevel ?? 0,
@@ -1138,6 +1356,9 @@ export function deserializeGameState(serialized) {
     chapter: CHAPTERS[data.chapter] ? data.chapter : base.chapter,
     completedChapters: new Set(toArray(data.completedChapters).filter((chapterId) => CHAPTERS[chapterId])),
     currentAreaId: AREAS[data.currentAreaId] ? data.currentAreaId : null,
+    currentFloor: clamp(toFiniteNumber(data.currentFloor, base.currentFloor), 0, 4),
+    stepsInPeriod: clamp(toFiniteNumber(data.stepsInPeriod, base.stepsInPeriod), 0, 99),
+    hubReturnPoint: restorePoint(data.hubReturnPoint, base.hubReturnPoint),
     tactic: TACTICS[data.tactic] ? data.tactic : base.tactic,
     rationPolicy: RATION_POLICIES[data.rationPolicy] ? data.rationPolicy : base.rationPolicy,
     watchLevel: clamp(toFiniteNumber(data.watchLevel, base.watchLevel), 0, WATCH_MAX_LEVEL),

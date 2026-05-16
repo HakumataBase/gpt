@@ -74,7 +74,7 @@ test("initial state starts at the school base with the hero and Minato", () => {
   assert.equal(state.tactic, "balanced");
   assert.equal(state.rationPolicy, "normal");
   assert.equal(state.watchLevel, 0);
-  assert.deepEqual(state.areaDanger, { school: 1, market: 3, hospital: 4, park: 2 });
+  assert.deepEqual(state.areaDanger, { school: 1, market: 3, hospital: 4, park: 2, vacant: 4 });
   assert.deepEqual(state.party.map((member) => member.id), ["hero", "minato"]);
   assert.ok(state.rescued.has("hero"));
   assert.ok(state.rescued.has("minato"));
@@ -87,6 +87,21 @@ test("initial state starts at the school base with the hero and Minato", () => {
   assert.equal(state.entities.filter((entity) => entity.type === "area").length, 4);
   assert.equal(state.entities.some((entity) => entity.type === "enemy"), true);
   assert.equal(getAreaDanger(state, null), HUB_AREA.danger);
+});
+
+
+test("areas can define alternate floors and the final vacant lot is locked behind parts", () => {
+  const state = createInitialState();
+  const hubAreaIds = state.entities.filter((entity) => entity.type === "area").map((entity) => entity.areaId).sort();
+  assert.deepEqual(hubAreaIds, ["hospital", "market", "park", "school"]);
+  assert.equal(HUB_AREA.entities.some((entity) => entity.areaId === "vacant" && entity.requiresParts === REQUIRED_PARTS), true);
+  assert.ok(AREAS.school.floors?.[1]);
+  assert.ok(AREAS.market.floors?.[1]);
+  assert.ok(AREAS.vacant.floors?.[1]);
+
+  const secondFloor = cloneAreaState(AREAS.school, state.rescued, AREAS.school.danger, state.completedEvents, state.collectedItems, 1);
+  assert.deepEqual(secondFloor.player, AREAS.school.floors[1].start);
+  assert.equal(secondFloor.entities.some((entity) => entity.type === "stairs" && entity.targetFloor === 0), true);
 });
 
 test("cloneAreaState creates mutable map state and filters rescued allies", () => {
@@ -483,7 +498,7 @@ test("objectives summarize repair, truth, allies, and danger progress", () => {
   assert.equal(objectives.find((objective) => objective.id === "rescue_allies").complete, true);
   assert.equal(objectives.find((objective) => objective.id === "control_pressure").complete, true);
   assert.equal(objectives.find((objective) => objective.id === "control_danger").complete, false);
-  assert.equal(objectives.find((objective) => objective.id === "control_danger").current, 3);
+  assert.equal(objectives.find((objective) => objective.id === "control_danger").current, 4);
 });
 
 test("buildBarricade spends parts to reduce elevated area danger and raise morale", () => {

@@ -61,7 +61,7 @@ test("npm scripts keep syntax checks and the node test suite wired together", ()
 
 test("every static HTML button is wired to a click handler", () => {
   const buttonIds = [...html.matchAll(/<button[^>]+id="([A-Za-z0-9_-]+)"/g)].map((match) => match[1]);
-  assert.ok(buttonIds.length >= 15, "sanity check that static controls were detected");
+  assert.ok(buttonIds.length >= 9, "sanity check that static controls were detected");
 
   for (const id of buttonIds) {
     const directListener = new RegExp(`document\\.querySelector\\("#${id}"\\)\\.addEventListener\\("click"`);
@@ -76,7 +76,7 @@ test("every static HTML button is wired to a click handler", () => {
 });
 
 test("dynamic UI buttons are wired when rendered", () => {
-  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => enterArea\(entity\.areaId\)\)/);
+  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => entity\.type === "area" \? enterArea\(entity\.areaId\) : switchFloor\(entity\.targetFloor\)\)/);
   assert.match(mainSource, /tile\.addEventListener\("keydown", \(event\) =>/);
   assert.match(mainSource, /button\.addEventListener\("click", \(\) => \{\s*if \(choice\.closeOnAction !== false\) closeModal\(\);\s*choice\.action\(\);\s*\}\)/s);
 });
@@ -184,6 +184,35 @@ test("desktop panels use height-aware sizing so top and command screens stay vis
   assert.match(css, /\.hero-card::before, \.hero-card::after, \.eyebrow, \.lead \{ display: none; \}/);
 });
 
+
+test("hub hides final vacant lot until parts are complete and supports return spawn points", () => {
+  assert.match(mainSource, /entity\.requiresParts && state\.parts < entity\.requiresParts/);
+  assert.match(mainSource, /state\.entities = hubState\.entities\.filter\(\(entity\) => !entity\.requiresParts \|\| state\.parts >= entity\.requiresParts\)/);
+  assert.match(mainSource, /AREA_RETURN_POINTS/);
+  assert.match(mainSource, /state\.hubReturnPoint = \{ \.\.\.returnPoint \}/);
+});
+
+test("decor obstacles, stairs, and step time pressure are wired in the browser layer", () => {
+  const css = readFileSync("styles/main.css", "utf8");
+
+  assert.match(mainSource, /const BLOCKING_DECOR = new Set\(\["b", "c", "k", "l", "m", "p", "s", "w"\]\)/);
+  assert.match(mainSource, /BLOCKING_DECOR\.has\(decor\)/);
+  assert.match(mainSource, /function switchFloor\(targetFloor\)/);
+  assert.match(mainSource, /const STEPS_PER_TIME_SEGMENT = 14/);
+  assert.match(mainSource, /function countExplorationStep\(\)/);
+  assert.match(css, /\.tile\.stairs/);
+  assert.match(css, /\.tile\.blocked-decor/);
+});
+
+test("battle UI uses stance-based choices instead of a single fight command", () => {
+  assert.match(mainSource, /function pickEnemyIntent\(enemy\)/);
+  assert.match(mainSource, /function resolveBattleMove\(move, preview, intent, entityIndex\)/);
+  assert.match(mainSource, /突く: 詠唱や突進を止める/);
+  assert.match(mainSource, /守る: 突進を受け流す/);
+  assert.match(mainSource, /誘導: 隙を作り旗圧を下げる/);
+  assert.doesNotMatch(mainSource, /label: "戦う"/);
+});
+
 test("debug mode exposes chapter-complete and ending shortcuts only behind a query flag", () => {
   assert.match(html, /id="debug-panel"/);
   assert.match(mainSource, /new URLSearchParams\(window\.location\.search\)\.has\("debug"\)/);
@@ -219,7 +248,7 @@ test("hub renders exploration destinations inside the playable 14x14 map", () =>
 
   assert.match(mainSource, /HUB_AREA/);
   assert.match(mainSource, /entity\.type === "area"/);
-  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => enterArea\(entity\.areaId\)\)/);
+  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => entity\.type === "area" \? enterArea\(entity\.areaId\) : switchFloor\(entity\.targetFloor\)\)/);
   assert.match(css, /\.area-theme-base/);
   assert.match(css, /\.tile\.area/);
 });
