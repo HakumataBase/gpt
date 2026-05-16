@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 
 const playBat = readFileSync("play.bat", "utf8");
@@ -52,9 +53,11 @@ test("Windows launchers stay text-only without binary BOMs", () => {
   assert.equal(windowsLauncherRaw.includes(0), false);
 });
 
-test("Windows batch launchers use CRLF and avoid mojibake-prone Japanese commands", () => {
-  assert.equal(playBatRaw.includes(Buffer.from("\r\n")), true);
-  assert.equal(playCmdRaw.includes(Buffer.from("\r\n")), true);
+test("Windows batch launchers are marked CRLF and avoid mojibake-prone Japanese commands", () => {
+  const attrOutput = execFileSync("git", ["check-attr", "eol", "--", "play.bat", "play.cmd"], { encoding: "utf8" });
+
+  assert.match(attrOutput, /play\.bat: eol: crlf/);
+  assert.match(attrOutput, /play\.cmd: eol: crlf/);
   assert.doesNotMatch(playBat, /[\u0080-\uffff]/);
   assert.doesNotMatch(readFileSync("play.cmd", "utf8"), /[\u0080-\uffff]/);
 });

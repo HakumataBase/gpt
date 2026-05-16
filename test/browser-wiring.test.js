@@ -58,6 +58,29 @@ test("npm scripts keep syntax checks and the node test suite wired together", ()
   assert.match(packageJson.scripts.check, /node --test/);
 });
 
+
+test("every static HTML button is wired to a click handler", () => {
+  const buttonIds = [...html.matchAll(/<button[^>]+id="([A-Za-z0-9_-]+)"/g)].map((match) => match[1]);
+  assert.ok(buttonIds.length >= 15, "sanity check that static controls were detected");
+
+  for (const id of buttonIds) {
+    const directListener = new RegExp(`document\\.querySelector\\("#${id}"\\)\\.addEventListener\\("click"`);
+    const uiBinding = new RegExp(`([A-Za-z0-9_]+): document\\.querySelector\\("#${id}"\\)`).exec(mainSource);
+    const uiListener = uiBinding ? new RegExp(`ui\\.${uiBinding[1]}\\.addEventListener\\("click"`) : null;
+
+    assert.ok(
+      directListener.test(mainSource) || uiListener?.test(mainSource),
+      `#${id} should have a click listener in src/main.js`,
+    );
+  }
+});
+
+test("dynamic UI buttons are wired when rendered", () => {
+  assert.match(mainSource, /button\.addEventListener\("click", \(\) => enterArea\(id\)\)/);
+  assert.match(mainSource, /button\.addEventListener\("click", \(\) => enterArea\(areaId\)\)/);
+  assert.match(mainSource, /button\.addEventListener\("click", \(\) => \{\s*if \(choice\.closeOnAction !== false\) closeModal\(\);\s*choice\.action\(\);\s*\}\)/s);
+});
+
 test("modal actions close before running the selected action", () => {
   assert.match(mainSource, /if \(choice\.closeOnAction !== false\) closeModal\(\);/);
 });
