@@ -76,7 +76,10 @@ test("every static HTML button is wired to a click handler", () => {
 });
 
 test("dynamic UI buttons are wired when rendered", () => {
-  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => entity\.type === "area" \? enterArea\(entity\.areaId\) : switchFloor\(entity\.targetFloor\)\)/);
+  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => \{/);
+  assert.match(mainSource, /if \(entity\.type === "area"\) enterArea\(entity\.areaId\)/);
+  assert.match(mainSource, /else if \(entity\.type === "stairs"\) switchFloor\(entity\.targetFloor\)/);
+  assert.match(mainSource, /else openBaseMenu\(\)/);
   assert.match(mainSource, /tile\.addEventListener\("keydown", \(event\) =>/);
   assert.match(mainSource, /button\.addEventListener\("click", \(\) => \{\s*if \(choice\.closeOnAction !== false\) closeModal\(\);\s*choice\.action\(\);\s*\}\)/s);
 });
@@ -119,14 +122,18 @@ test("desktop layout avoids internal scroll containers", () => {
   assert.match(css, /body \{[^}]*overflow: hidden;/);
 });
 
-test("base command controls stay compact without duplicate destination buttons", () => {
+test("base-only commands are map-gated instead of command-screen buttons", () => {
   const css = readFileSync("styles/main.css", "utf8");
 
   assert.equal(html.includes('id="area-actions"'), false);
-  assert.doesNotMatch(mainSource, /function renderAreaButtons/);
-  assert.match(mainSource, /entity\.type === "area"/);
-  assert.match(css, /\.base-actions \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(css, /\.tile\.area/);
+  assert.equal(html.includes('id="rest-button"'), false);
+  assert.equal(html.includes('id="ration-button"'), false);
+  assert.equal(html.includes('id="medicine-button"'), false);
+  assert.match(html, /休息・配給・治療は、町内マップの「拠」マス/);
+  assert.match(mainSource, /function openBaseMenu\(\)/);
+  assert.match(mainSource, /entity\.type === "base"/);
+  assert.match(css, /\.map-command-note/);
+  assert.match(css, /\.tile\.base/);
 });
 
 test("visual presentation stays text-only for branch updates", () => {
@@ -167,7 +174,8 @@ test("map controls sit beside the top screen map with a transient top-right mess
   assert.match(html, /id="live-message" class="live-message" aria-live="polite"/);
   assert.match(mainSource, /liveMessage: document\.querySelector\("#live-message"\)/);
   assert.match(mainSource, /function showLiveMessage\(message\)/);
-  assert.match(css, /\.top-screen-body \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(8rem, 10rem\)/);
+  assert.match(css, /\.top-screen-body \{[^}]*grid-template-columns: max-content minmax\(6\.4rem, 7\.4rem\)/);
+  assert.match(css, /\.top-screen-body \{[^}]*justify-content: center;/);
   assert.match(css, /\.live-message \{[^}]*position: absolute;[^}]*right: 0\.75rem;[^}]*top: 2\.2rem;/);
   assert.match(css, /@keyframes messagePop/);
 });
@@ -177,7 +185,7 @@ test("desktop panels use height-aware sizing so top and command screens stay vis
 
   assert.match(css, /--tile-size: clamp\(1\.45rem, 2dvh \+ 0\.35rem, 1\.95rem\)/);
   assert.match(css, /grid-template-rows: minmax\(0, 1\.02fr\) minmax\(0, \.98fr\)/);
-  assert.match(css, /\.base-actions button \{[^}]*font-size: clamp\(0\.68rem, 1\.45dvh, 0\.78rem\)/);
+  assert.match(css, /\.map-command-note p \{[^}]*font-size: clamp\(0\.64rem, 1\.35dvh, 0\.76rem\)/);
   assert.match(css, /#area-description \{[^}]*font-size: clamp\(0\.68rem, 1\.5dvh, 0\.82rem\)/);
   assert.match(css, /\.area-notes li \{[^}]*font-size: clamp\(0\.56rem, 1\.25dvh, 0\.66rem\)/);
   assert.match(css, /@media \(min-width: 1051px\) and \(max-height: 700px\)/);
@@ -222,13 +230,13 @@ test("debug mode exposes chapter-complete and ending shortcuts only behind a que
 
 test("hub keeps optional details below the compact command actions", () => {
   const css = readFileSync("styles/main.css", "utf8");
-  const commandIndex = html.indexOf('aria-label="拠点行動"');
+  const commandIndex = html.indexOf('aria-label="拠点行動案内"');
   const partyIndex = html.indexOf('id="party-list"');
   const objectiveIndex = html.indexOf('id="objective-list"');
 
   assert.ok(commandIndex > 0);
-  assert.ok(partyIndex > commandIndex, "party details should not push commands below the fold");
-  assert.ok(objectiveIndex > commandIndex, "objective details should not push commands below the fold");
+  assert.ok(partyIndex > commandIndex, "party details should stay below the map-gated command note");
+  assert.ok(objectiveIndex > commandIndex, "objective details should stay below the map-gated command note");
   assert.match(html, /<details class="info-drawer">\s*<summary>仲間・状態を見る<\/summary>/);
   assert.match(html, /<details class="info-drawer">\s*<summary>目標の詳細を見る<\/summary>/);
   assert.match(css, /\.info-drawer summary/);
@@ -248,7 +256,9 @@ test("hub renders exploration destinations inside the playable 14x14 map", () =>
 
   assert.match(mainSource, /HUB_AREA/);
   assert.match(mainSource, /entity\.type === "area"/);
-  assert.match(mainSource, /tile\.addEventListener\("click", \(\) => entity\.type === "area" \? enterArea\(entity\.areaId\) : switchFloor\(entity\.targetFloor\)\)/);
+  assert.match(mainSource, /if \(entity\.type === "area"\) enterArea\(entity\.areaId\)/);
+  assert.match(mainSource, /else if \(entity\.type === "stairs"\) switchFloor\(entity\.targetFloor\)/);
+  assert.match(mainSource, /else openBaseMenu\(\)/);
   assert.match(css, /\.area-theme-base/);
   assert.match(css, /\.tile\.area/);
 });

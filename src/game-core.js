@@ -539,8 +539,9 @@ export const HUB_AREA = {
       "              ",
     ],
   },
-  start: { x: 6, y: 7 },
+  start: { x: 5, y: 7 },
   entities: [
+    { type: "base", x: 6, y: 7, label: "拠" },
     { type: "area", x: 7, y: 7, areaId: "school", label: "校" },
     { type: "area", x: 10, y: 7, areaId: "market", label: "商" },
     { type: "area", x: 2, y: 11, areaId: "hospital", label: "病" },

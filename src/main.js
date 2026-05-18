@@ -113,9 +113,6 @@ const ui = {
   log: document.querySelector("#log-list"),
   liveMessage: document.querySelector("#live-message"),
   returnButton: document.querySelector("#return-button"),
-  restButton: document.querySelector("#rest-button"),
-  rationButton: document.querySelector("#ration-button"),
-  medicineButton: document.querySelector("#medicine-button"),
   restartButton: document.querySelector("#restart-button"),
   saveButton: document.querySelector("#save-button"),
   loadButton: document.querySelector("#load-button"),
@@ -305,6 +302,8 @@ function resolveTile() {
         : { label: "向かう", primary: true, action: () => { closeModal(); enterArea(entity.areaId); } },
       ...(locked ? [] : [{ label: "町内に残る", action: closeModal }]),
     ]);
+  } else if (entity.type === "base") {
+    openBaseMenu();
   } else if (entity.type === "stairs") {
     switchFloor(entity.targetFloor);
   } else if (entity.type === "item") {
@@ -326,6 +325,20 @@ function resolveTile() {
   } else if (entity.type === "enemy") {
     startBattle(entity, entityIndex);
   }
+}
+
+function openBaseMenu() {
+  if (state.gameOver || state.currentAreaId) return;
+  showChoice(
+    "学校拠点",
+    "校門横の拠点に入った。ここでだけ休息・配給変更・治療ができます。",
+    [
+      { label: "休む", primary: true, action: () => { closeModal(); rest(); } },
+      { label: "配給方針を変える", action: () => { openRationMenu(); } },
+      { label: state.medicine > 0 ? "薬を使う" : "薬がない", action: () => { openMedicineMenu(); } },
+      { label: "町内へ戻る", action: closeModal },
+    ],
+  );
 }
 
 function switchFloor(targetFloor) {
@@ -904,9 +917,6 @@ function render() {
   renderAreaNotes();
   renderLogs();
   ui.returnButton.disabled = !state.currentAreaId || state.gameOver;
-  ui.restButton.disabled = !!state.currentAreaId || state.gameOver;
-  ui.rationButton.disabled = !!state.currentAreaId || state.gameOver;
-  ui.medicineButton.disabled = !!state.currentAreaId || state.gameOver || state.medicine <= 0;
   ui.saveButton.disabled = state.gameOver;
   ui.loadButton.disabled = !hasSavedGame();
 }
@@ -984,15 +994,20 @@ function renderMap() {
       if (entity) {
         tile.classList.add(entity.type);
         tile.append(createEntityLayer(entity));
-        if (entity.type === "area" || entity.type === "stairs") {
+        if (entity.type === "area" || entity.type === "stairs" || entity.type === "base") {
           tile.tabIndex = 0;
           tile.role = "button";
-          tile.addEventListener("click", () => entity.type === "area" ? enterArea(entity.areaId) : switchFloor(entity.targetFloor));
+          tile.addEventListener("click", () => {
+            if (entity.type === "area") enterArea(entity.areaId);
+            else if (entity.type === "stairs") switchFloor(entity.targetFloor);
+            else openBaseMenu();
+          });
           tile.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               if (entity.type === "area") enterArea(entity.areaId);
-              else switchFloor(entity.targetFloor);
+              else if (entity.type === "stairs") switchFloor(entity.targetFloor);
+              else openBaseMenu();
             }
           });
         }
@@ -1045,6 +1060,7 @@ function tileLabel(terrain, decor, entity, isPlayer) {
 
 function entityLabel(entity) {
   if (entity.type === "area") return entity.label ?? AREAS[entity.areaId]?.name?.[0] ?? "行";
+  if (entity.type === "base") return entity.label ?? "拠";
   if (entity.type === "stairs") return entity.label ?? "階";
   if (entity.type === "enemy") return ENEMIES[entity.enemy].icon;
   if (entity.type === "item") return "物";
@@ -1134,9 +1150,6 @@ function formatGain(result) {
 }
 
 ui.returnButton.addEventListener("click", returnToBase);
-ui.restButton.addEventListener("click", rest);
-ui.rationButton.addEventListener("click", openRationMenu);
-ui.medicineButton.addEventListener("click", openMedicineMenu);
 ui.restartButton.addEventListener("click", restart);
 ui.saveButton.addEventListener("click", saveGame);
 ui.loadButton.addEventListener("click", loadGame);

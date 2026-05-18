@@ -85,6 +85,7 @@ test("initial state starts at the school base with the hero and Minato", () => {
   assert.equal(state.terrain.length, 14);
   assert.equal(state.terrain[0].length, 14);
   assert.equal(state.entities.filter((entity) => entity.type === "area").length, 4);
+  assert.equal(state.entities.some((entity) => entity.type === "base"), true);
   assert.equal(state.entities.some((entity) => entity.type === "enemy"), true);
   assert.equal(getAreaDanger(state, null), HUB_AREA.danger);
 });
